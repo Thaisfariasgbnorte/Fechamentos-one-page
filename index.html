@@ -171,6 +171,8 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const faixa = p => p == null || !isFinite(p) ? "none" : p >= D.faixaVerde ? "good" : p >= D.faixaAmarela ? "warn" : "bad";
 const pill = p => `<span class="pill ${faixa(p)}">${pct(p)}</span>`;
 const somaInd = i => i.consolidacao === "soma";
+// indicador sem nenhuma meta lançada (ex.: margem bruta e ticket médio) não mostra meta nem % da meta
+const temMeta = i => [i.metaCons, ...Object.values(i.meta)].some(a => a.some(v => v));
 
 // série mensal (12) de realizado e meta para a visão
 function serie(ind, visao){
@@ -241,7 +243,7 @@ function renderKpis(){
     return `<article class="kpi">
       <div class="top"><span class="eyebrow">${esc(ind.rotulo)}</span>${x.p!=null?pill(x.p):""}</div>
       <div class="val ${x.r==null?"empty":""}">${x.r==null?"Sem lançamento":fmt(ind, x.r, true)}</div>
-      <div class="sub">${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:"<span>Sem meta</span>"}${delta}${acum}</div>
+      <div class="sub">${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:temMeta(ind)?"<span>Sem meta no mês</span>":""}${delta}${acum}</div>
       ${spark(real, mes)}
     </article>`;
   }).join("");
@@ -249,13 +251,13 @@ function renderKpis(){
 
 function renderLojas(){
   const inds = D.indicadores;
-  const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th><th class="n">% meta</th>`).join("")}</tr></thead>`;
+  const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th>${temMeta(i)?'<th class="n">% meta</th>':""}`).join("")}</tr></thead>`;
   const linha = (l, cls) => {
-    const cells = inds.map(i => { const x = mesAno(i, l, mes); return `<td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>`; }).join("");
+    const cells = inds.map(i => { const x = mesAno(i, l, mes); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>` : ""); }).join("");
     return `<tr class="${cls}" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${cells}</tr>`;
   };
   const corpo = LOJAS.map(l => linha(l, "click" + (l===visao?" sel":""))).join("");
-  const pe = inds.map(i => { const x = mesAno(i, CONS, mes); return `<td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):""}</td>`; }).join("");
+  const pe = inds.map(i => { const x = mesAno(i, CONS, mes); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n">${x.p!=null?pill(x.p):""}</td>` : ""); }).join("");
   const t = document.getElementById("tblLojas");
   t.innerHTML = head + `<tbody>${corpo}</tbody><tfoot><tr class="click${visao===CONS?" sel":""}" data-loja="${CONS}" tabindex="0"><td>Consolidado</td>${pe}</tr></tfoot>`;
   t.querySelectorAll("tr[data-loja]").forEach(tr => {
