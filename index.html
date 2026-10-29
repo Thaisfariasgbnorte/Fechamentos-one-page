@@ -102,12 +102,13 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
       <h1>One Page <span>Pós-Vendas</span> · <span id="tituloMes" class="num"></span></h1>
     </div>
     <div class="controls">
-      <div class="ctl"><label class="eyebrow">Mês de fechamento</label><div class="months" id="meses" role="group" aria-label="Mês"></div></div>
+      <div class="ctl"><span class="eyebrow">Período</span><div class="months" id="atalhos" role="group" aria-label="Atalhos de período"></div></div>
+      <div class="ctl"><span class="eyebrow">Meses · clique para somar ou tirar</span><div class="months" id="meses" role="group" aria-label="Meses"></div></div>
       <div class="ctl"><label class="eyebrow" for="visao">Visão</label><select id="visao"></select></div>
     </div>
   </header>
 
-  <section class="kpis" id="kpis" aria-label="Indicadores do mês"></section>
+  <section class="kpis" id="kpis" aria-label="Indicadores do período"></section>
 
   <div class="page-tag"><h2>1/2 · Resultados</h2></div>
   <div class="grid">
@@ -179,39 +180,105 @@ function serie(ind, visao){
   return visao === CONS ? {real: ind.realCons, meta: ind.metaCons} : {real: ind.real[visao] || [], meta: ind.meta[visao] || []};
 }
 const ok = v => v != null;
-function ateMes(arr, m, agg){
-  const vs = arr.slice(0, m+1).filter(ok);
-  if (!vs.length) return null;
-  const s = vs.reduce((a,b)=>a+b,0);
-  return agg ? s : s / vs.length;
-}
-function mesAno(ind, visao, m){
+const soma = a => a.reduce((x,y)=>x+y,0);
+
+// agrega um indicador num conjunto de meses: soma (faturamento, passagens), média ponderada
+// pelo faturamento (margem) ou pelas passagens (ticket), ou média simples (FFV, DID, NPS)
+function agrega(ind, visao, meses){
   const {real, meta} = serie(ind, visao);
-  const r = real[m] ?? null, mt = meta[m] || null;
-  const ant = m > 0 ? real[m-1] : null;
-  const agg = somaInd(ind);
-  const ra = ateMes(real, m, agg);
-  // meta acumulada só dos meses com realizado, como na planilha
-  let ma = null;
-  if (agg){ let s=0,c=0; for(let k=0;k<=m;k++) if(ok(real[k]) && meta[k]){ s+=meta[k]; c++; } ma = c ? s : null; }
-  else ma = ateMes(meta.map(x => x || null), m, false);
-  return {r, mt, p: r!=null && mt ? r/mt : null, varAnt: r!=null && ant ? r/ant - 1 : null,
-          ra, ma, pa: ra!=null && ma ? ra/ma : null};
+  const ms = meses.filter(m => ok(real[m]));
+  if (!ms.length) return {r: null, mt: null, p: null, n: 0};
+  let r, mt = null;
+  const comMeta = ms.filter(m => meta[m]);
+  if (somaInd(ind)){
+    r = soma(ms.map(m => real[m]));
+    if (comMeta.length) mt = soma(comMeta.map(m => meta[m]));
+  } else {
+    const base = ind.consolidacao === "media_pond_fat" ? IND.fat : ind.consolidacao === "media_pond_pass" ? IND.pass : null;
+    const pesoS = base ? serie(base, visao).real : null;
+    const media = (vals, mm) => {
+      const pesos = pesoS ? mm.map(m => pesoS[m]) : null;
+      if (pesos && pesos.every(p => p > 0)) return soma(mm.map((m,i) => vals[m]*pesos[i])) / soma(pesos);
+      return soma(mm.map(m => vals[m])) / mm.length;
+    };
+    r = media(real, ms);
+    if (comMeta.length) mt = media(meta, comMeta);
+  }
+  return {r, mt, p: mt ? r/mt : null, n: ms.length};
+}
+
+// meses selecionados (índices 0-11, em ordem)
+let sel = [];
+const ultimo = () => sel[sel.length-1];
+const contiguo = () => sel.every((m,i) => i === 0 || m === sel[i-1] + 1);
+// período anterior de mesmo tamanho (só quando os meses escolhidos são seguidos)
+function anterior(){
+  if (!contiguo()) return null;
+  const n = sel.length, ini = sel[0] - n;
+  return ini < 0 ? null : Array.from({length: n}, (_, i) => ini + i);
+}
+const fmtVar = (x, abs) => { const v = abs ? Math.abs(x.varAnt) : x.varAnt; return x.pp ? `${v>=0&&!abs?"+":""}${nf1.format(v)} p.p.` : `${v>=0&&!abs?"+":""}${pct(v)}`; };
+// período = todos os meses de janeiro até o último escolhido
+const anoInteiro = () => sel.length === ultimo() + 1;
+const nomeMeses = ms => ms.length === 1 ? MES[ms[0]] : `${MES[ms[0]]}–${MES[ms[ms.length-1]]}`;
+const mesesComDado = () => MES.map((_, m) => m).filter(temDado);
+function rotuloSel(maiusc){
+  const ano = D.ano, todos = mesesComDado();
+  let t;
+  if (sel.length > 1 && sel.length === todos.length && sel.every((m,i) => m === todos[i])) t = `ano ${ano} (${nomeMeses(sel)})`;
+  else {
+    const tri = [0,1,2,3].find(q => igual(sel, mesesTri(q)) && sel.length === 3);
+    if (tri != null) t = `${tri+1}º tri/${ano}`;
+    else if (contiguo()) t = `${nomeMeses(sel)}/${ano}`;
+    else t = `${sel.map(m => MES[m]).join(", ")}/${ano}`;
+  }
+  return maiusc ? t.toUpperCase() : t;
+}
+const igual = (a, b) => a.length === b.length && a.every((v,i) => v === b[i]);
+const mesesTri = q => [q*3, q*3+1, q*3+2].filter(temDado);
+
+function calc(ind, visao){
+  const x = agrega(ind, visao, sel);
+  const ant = anterior(), xa = ant ? agrega(ind, visao, ant) : null;
+  const ano = agrega(ind, visao, Array.from({length: ultimo()+1}, (_, i) => i));
+  // indicadores em % comparam em pontos percentuais; os demais em variação relativa
+  const pp = ind.unidade === "%";
+  const varAnt = xa && x.r != null && xa.r != null && (pp || xa.r) ? (pp ? x.r - xa.r : x.r/xa.r - 1) : null;
+  return {...x, varAnt, pp, nomeAnt: ant ? nomeMeses(ant) : "",
+          ra: ano.r, ma: ano.mt, pa: ano.p};
 }
 
 // meses com dado
 const temDado = m => D.indicadores.some(i => ok(i.realCons[m]));
-let mes = (() => { for (let m=11;m>=0;m--) if (ok(IND.fat.realCons[m]) && IND.fat.realCons[m] > 0) return m; for (let m=11;m>=0;m--) if (temDado(m)) return m; return 0; })();
+const ultimoMes = (() => { for (let m=11;m>=0;m--) if (ok(IND.fat.realCons[m]) && IND.fat.realCons[m] > 0) return m; for (let m=11;m>=0;m--) if (temDado(m)) return m; return 0; })();
+sel = [ultimoMes];
 let visao = CONS, evoInd = "fat";
 try { const s = JSON.parse(localStorage.getItem("onepage-pv") || "{}"); if (s.visao && (s.visao===CONS || LOJAS.includes(s.visao))) visao = s.visao; if (IND[s.evoInd]) evoInd = s.evoInd; } catch(e){}
 const salvar = () => { try { localStorage.setItem("onepage-pv", JSON.stringify({visao, evoInd})); } catch(e){} };
 
 // controles
+const elAtalhos = document.getElementById("atalhos");
+const atalhos = [
+  ["Último mês", () => [ultimoMes]],
+  ...[0,1,2,3].map(q => [`${q+1}º tri`, () => mesesTri(q)]),
+  ["Ano todo", mesesComDado],
+];
+atalhos.forEach(([nome, f], i) => {
+  const b = document.createElement("button");
+  b.textContent = nome; b.id = "atalho-" + i; b.disabled = !f().length;
+  b.onclick = () => { sel = f(); render(); };
+  elAtalhos.appendChild(b);
+});
 const elMeses = document.getElementById("meses");
 MES.forEach((nome, m) => {
   const b = document.createElement("button");
   b.textContent = nome; b.id = "mes-" + nome; b.disabled = !temDado(m);
-  b.onclick = () => { mes = m; render(); };
+  // clique soma ou tira o mês da seleção (sempre fica pelo menos um)
+  b.onclick = () => {
+    if (sel.includes(m)) { if (sel.length > 1) sel = sel.filter(x => x !== m); }
+    else sel = [...sel, m].sort((a,b) => a-b);
+    render();
+  };
   elMeses.appendChild(b);
 });
 const elVisao = document.getElementById("visao");
@@ -225,26 +292,28 @@ D.indicadores.forEach(i => {
   evoTabs.appendChild(b);
 });
 
-function spark(arr, m){
+function spark(arr){
   const pts = arr.map((v,k)=>[k,v]).filter(([,v])=>ok(v));
   if (pts.length < 2) return "";
   const vs = pts.map(p=>p[1]), lo = Math.min(...vs), hi = Math.max(...vs), rg = hi-lo || 1;
   const x = k => 2 + k*(156/11), y = v => 27 - (v-lo)/rg*23;
   const d = pts.map(([k,v],i)=>(i?"L":"M")+x(k).toFixed(1)+" "+y(v).toFixed(1)).join("");
-  const cur = ok(arr[m]) ? `<circle cx="${x(m)}" cy="${y(arr[m])}" r="2.8" fill="var(--accent)"/>` : "";
+  const cur = sel.filter(m => ok(arr[m])).map(m => `<circle cx="${x(m)}" cy="${y(arr[m])}" r="2.8" fill="var(--accent)"/>`).join("");
   return `<svg viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" opacity=".7"/>${cur}</svg>`;
 }
 
 function renderKpis(){
+  const varios = sel.length > 1;
   document.getElementById("kpis").innerHTML = D.indicadores.map(ind => {
-    const x = mesAno(ind, visao, mes), {real} = serie(ind, visao);
-    const delta = x.varAnt == null ? "" : `<span class="delta ${x.varAnt>=0?"up":"down"}">${x.varAnt>=0?"▲":"▼"} ${pct(Math.abs(x.varAnt))} vs ${MES[mes-1]}</span>`;
-    const acum = x.ra == null ? "" : `<span>${somaInd(ind)?"Ano":"Média ano"}: ${fmt(ind, x.ra, true)}${x.pa!=null?" ("+pct(x.pa)+")":""}</span>`;
+    const x = calc(ind, visao), {real} = serie(ind, visao);
+    const delta = x.varAnt == null ? "" : `<span class="delta ${x.varAnt>=0?"up":"down"}">${x.varAnt>=0?"▲":"▼"} ${fmtVar(x, true)} vs ${x.nomeAnt}</span>`;
+    const acum = x.ra == null || anoInteiro() ? "" : `<span>${somaInd(ind)?"Ano":"Média ano"}: ${fmt(ind, x.ra, true)}${x.pa!=null?" ("+pct(x.pa)+")":""}</span>`;
+    const tipo = varios && x.r != null ? `<span>${somaInd(ind) ? "Soma" : "Média"} de ${x.n} ${x.n>1?"meses":"mês"}</span>` : "";
     return `<article class="kpi">
       <div class="top"><span class="eyebrow">${esc(ind.rotulo)}</span>${x.p!=null?pill(x.p):""}</div>
       <div class="val ${x.r==null?"empty":""}">${x.r==null?"Sem lançamento":fmt(ind, x.r, true)}</div>
-      <div class="sub">${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:temMeta(ind)?"<span>Sem meta no mês</span>":""}${delta}${acum}</div>
-      ${spark(real, mes)}
+      <div class="sub">${tipo}${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:temMeta(ind)?"<span>Sem meta no período</span>":""}${delta}${acum}</div>
+      ${spark(real)}
     </article>`;
   }).join("");
 }
@@ -252,14 +321,10 @@ function renderKpis(){
 function renderLojas(){
   const inds = D.indicadores;
   const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th>${temMeta(i)?'<th class="n">% meta</th>':""}`).join("")}</tr></thead>`;
-  const linha = (l, cls) => {
-    const cells = inds.map(i => { const x = mesAno(i, l, mes); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>` : ""); }).join("");
-    return `<tr class="${cls}" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${cells}</tr>`;
-  };
-  const corpo = LOJAS.map(l => linha(l, "click" + (l===visao?" sel":""))).join("");
-  const pe = inds.map(i => { const x = mesAno(i, CONS, mes); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n">${x.p!=null?pill(x.p):""}</td>` : ""); }).join("");
+  const celulas = l => inds.map(i => { const x = agrega(i, l, sel); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>` : ""); }).join("");
+  const corpo = LOJAS.map(l => `<tr class="click${l===visao?" sel":""}" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${celulas(l)}</tr>`).join("");
   const t = document.getElementById("tblLojas");
-  t.innerHTML = head + `<tbody>${corpo}</tbody><tfoot><tr class="click${visao===CONS?" sel":""}" data-loja="${CONS}" tabindex="0"><td>Consolidado</td>${pe}</tr></tfoot>`;
+  t.innerHTML = head + `<tbody>${corpo}</tbody><tfoot><tr class="click${visao===CONS?" sel":""}" data-loja="${CONS}" tabindex="0"><td>Consolidado</td>${celulas(CONS)}</tr></tfoot>`;
   t.querySelectorAll("tr[data-loja]").forEach(tr => {
     const go = () => setVisao(tr.dataset.loja === visao ? CONS : tr.dataset.loja);
     tr.onclick = go; tr.onkeydown = e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
@@ -280,38 +345,42 @@ function renderEvo(){
   for (let k=0;k<=4;k++){ const v = min + (max-min)*k/4, yy = y(v);
     s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(ind, v, true)}</text>`; }
   MES.forEach((nm, k) => {
-    const x0 = L + k*bw, cx = x0 + bw/2;
+    const x0 = L + k*bw, cx = x0 + bw/2, on = sel.includes(k);
+    if (on) s += `<rect x="${x0+1}" y="${T-18}" width="${bw-2}" height="${H-T-B+18}" fill="var(--accent-soft)" opacity=".55" rx="3"/>`;
     if (meta[k]) s += `<rect x="${x0+bw*.14}" y="${y(meta[k])}" width="${bw*.72}" height="${Math.max(0,y(min)-y(meta[k]))}" fill="var(--meta)" rx="2"><title>Meta ${nm}: ${fmt(ind, meta[k])}</title></rect>`;
     if (ok(real[k])) { const top = y(Math.max(real[k],0)), h = Math.abs(y(real[k]) - y(0));
-      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--accent)" opacity="${k===mes?1:.75}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
-    if (k===mes && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
-    s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="11" fill="${k===mes?"var(--ink)":"var(--muted)"}" font-weight="${k===mes?700:400}">${nm}</text>`;
+      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--accent)" opacity="${on?1:.6}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
+    if (on && sel.length <= 4 && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
+    s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="11" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${nm}</text>`;
   });
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meta e realizado por mês">${s}</svg>`;
 }
 
 function renderConcl(){
-  const c = [], nm = MES[mes];
-  const f = mesAno(IND.fat, visao, mes);
-  if (f.r != null) c.push(`Faturamento de ${nm}: <b>${brl(f.r)}</b>${f.p!=null?` — ${pct(f.p)} da meta`:""}${f.varAnt!=null?`, ${f.varAnt>=0?"+":""}${pct(f.varAnt)} vs mês anterior`:""}.`);
+  const c = [], nm = rotuloSel(false), varios = sel.length > 1, noPer = varios ? "no período" : "no mês";
+  const f = calc(IND.fat, visao);
+  const vs = x => x.varAnt!=null ? `${fmtVar(x, false)} vs ${x.nomeAnt}` : "";
+  if (f.r != null) c.push(`Faturamento de ${nm}: <b>${brl(f.r)}</b>${f.p!=null?` — ${pct(f.p)} da meta`:""}${f.varAnt!=null?`, ${vs(f)}`:""}.`);
   else c.push(`Faturamento de ${nm} ainda não lançado na aba FATURAMENTO.`);
-  if (f.ra != null) c.push(`Acumulado no ano: <b>${brl(f.ra)}</b>${f.pa!=null?` — ${pct(f.pa)} da meta acumulada`:""}.`);
-  const p = mesAno(IND.pass, visao, mes);
-  if (p.r != null) c.push(`Passagens: <b>${nf0.format(p.r)}</b> no mês${p.varAnt!=null?` (${p.varAnt>=0?"+":""}${pct(p.varAnt)} vs mês anterior)`:""}${p.p!=null?`, ${pct(p.p)} da meta`:""}.`);
-  const mg = mesAno(IND.margem, visao, mes), tk = mesAno(IND.ticket, visao, mes);
-  if (mg.r != null || tk.r != null) c.push(`Margem bruta ${fmt(IND.margem, mg.r)} · ticket médio ${fmt(IND.ticket, tk.r)}.`);
+  if (varios && f.n > 1) c.push(`Média mensal de faturamento: <b>${brl(f.r / f.n)}</b> em ${f.n} meses lançados.`);
+  if (f.ra != null && !anoInteiro()) c.push(`Acumulado no ano até ${MES[ultimo()]}: <b>${brl(f.ra)}</b>${f.pa!=null?` — ${pct(f.pa)} da meta acumulada`:""}.`);
+  const p = calc(IND.pass, visao);
+  if (p.r != null) c.push(`Passagens: <b>${nf0.format(p.r)}</b> ${noPer}${p.varAnt!=null?` (${vs(p)})`:""}${p.p!=null?`, ${pct(p.p)} da meta`:""}.`);
+  const mg = calc(IND.margem, visao), tk = calc(IND.ticket, visao);
+  if (mg.r != null || tk.r != null) c.push(`Margem bruta ${fmt(IND.margem, mg.r)} · ticket médio ${fmt(IND.ticket, tk.r)}${varios?" (médias ponderadas do período)":""}.`);
   else c.push(`Margem e ticket médio sem lançamento em ${nm} (vêm do export Linx/NBS do mês).`);
   const qual = ["nps","ffv","did"].filter(k => IND[k]);
-  if (qual.length && !qual.some(k => mesAno(IND[k], visao, mes).r != null)) c.push(`${qual.map(k => IND[k].rotulo).join(" e ")} sem lançamento no mês; veja os programas da montadora na página 2.`);
-  const comMeta = D.indicadores.map(i => mesAno(i, visao, mes)).filter(x => x.p != null);
-  c.push(`Metas atingidas no mês: <b>${comMeta.filter(x => x.p >= D.faixaVerde).length} de ${comMeta.length}</b> indicadores com meta.`);
+  if (qual.length && !qual.some(k => calc(IND[k], visao).r != null)) c.push(`${qual.map(k => IND[k].rotulo).join(" e ")} sem lançamento ${noPer}; veja os programas da montadora na página 2.`);
+  const comMeta = D.indicadores.map(i => calc(i, visao)).filter(x => x.p != null);
+  c.push(`Metas atingidas ${noPer}: <b>${comMeta.filter(x => x.p >= D.faixaVerde).length} de ${comMeta.length}</b> indicadores com meta.`);
   if (visao === CONS){
-    const rk = LOJAS.map(l => [l, mesAno(IND.fat, l, mes).p]).filter(x => x[1] != null).sort((a,b)=>b[1]-a[1]);
+    const rk = LOJAS.map(l => [l, agrega(IND.fat, l, sel).p]).filter(x => x[1] != null).sort((a,b)=>b[1]-a[1]);
     if (rk.length > 1) c.push(`Melhor atingimento em faturamento: <b>${esc(rk[0][0])}</b> (${pct(rk[0][1])}); menor: <b>${esc(rk.at(-1)[0])}</b> (${pct(rk.at(-1)[1])}).`);
   }
-  if (D.inicioPeriodo2 != null && mes >= D.inicioPeriodo2 && D.inicioPeriodo2 > 0){
-    const r = serie(IND.fat, visao).real, a = ateMes(r, D.inicioPeriodo2-1, false), vs = r.slice(D.inicioPeriodo2, mes+1).filter(ok);
-    if (a && vs.length){ const b = vs.reduce((x,y)=>x+y,0)/vs.length; c.push(`Faturamento médio: ${esc(D.periodo1)} ${brlK(a)} × ${esc(D.periodo2)} ${brlK(b)} (${b/a-1>=0?"+":""}${pct(b/a-1)}).`); }
+  const ini2 = D.inicioPeriodo2, fim = ultimo();
+  if (ini2 != null && ini2 > 0 && fim >= ini2){
+    const r = serie(IND.fat, visao).real, p1 = r.slice(0, ini2).filter(ok), p2 = r.slice(ini2, fim+1).filter(ok);
+    if (p1.length && p2.length){ const a = soma(p1)/p1.length, b = soma(p2)/p2.length; c.push(`Faturamento médio: ${esc(D.periodo1)} ${brlK(a)} × ${esc(D.periodo2)} ${brlK(b)} (${b/a-1>=0?"+":""}${pct(b/a-1)}).`); }
   }
   document.getElementById("concl").innerHTML = c.map(x => `<li>${x}</li>`).join("");
 
@@ -320,33 +389,59 @@ function renderConcl(){
   document.getElementById("acoes").innerHTML = ac.length ? ac.join("") : `<p class="muted">Nenhum comentário lançado. Escreva justificativas e planos de ação no quadro "Comentários e ações do mês" de cada aba da planilha.</p>`;
 }
 
-// mês de export a usar: o selecionado ou, se não houver export dele, o último anterior
-function mesOficina(){ let m = mes; while (m >= 0 && !D.oficina.meses[m]) m--; return m; }
-const notaMes = m => `${MES[m]}/${D.ano}${m!==mes?" (último export)":""}`;
+// meses do período com o dado; se nenhum tiver, o último mês com dado antes do fim do período
+function mesesCom(tem){
+  const ms = sel.filter(tem);
+  if (ms.length) return {ms, recuo: false};
+  let m = ultimo(); while (m >= 0 && !tem(m)) m--;
+  return {ms: m < 0 ? [] : [m], recuo: true};
+}
+const notaPer = ({ms, recuo}) => `${ms.length > 1 && contiguoArr(ms) ? nomeMeses(ms) : ms.map(m => MES[m]).join(", ")}/${D.ano}${recuo ? " (último lançado)" : ms.length > 1 ? " (soma)" : ""}`;
+const contiguoArr = ms => ms.every((m,i) => i === 0 || m === ms[i-1] + 1);
+
+const CAMPOS_OF = ["passagens","mo","objMo","pecas","objPecas","total","projecao","lbPecas"];
+function somaOficina(regs){
+  regs = regs.filter(Boolean);
+  if (!regs.length) return null;
+  const t = {};
+  CAMPOS_OF.forEach(k => { const vs = regs.map(r => r[k]).filter(ok); t[k] = vs.length ? soma(vs) : null; });
+  // objetivo só vale se todos os meses do período tiverem objetivo no export
+  ["objMo", "objPecas"].forEach(k => { if (regs.some(r => !r[k])) t[k] = null; });
+  const div = (a, b) => a != null && b ? a / b : null;
+  return {...t, pctMo: div(t.mo, t.objMo), pctPecas: div(t.pecas, t.objPecas), ticket: div(t.total, t.passagens),
+          margemPecas: div(t.lbPecas, t.pecas), pecasMo: div(t.pecas, t.mo)};
+}
 
 function renderOficina(){
-  const mx = mesOficina(), ofm = D.oficina.meses[mx];
-  if (!ofm){ document.getElementById("ofNota").textContent = ""; document.getElementById("tblOficina").innerHTML = `<tbody><tr><td class="muted">Sem export Linx/NBS colado até ${MES[mes]}.</td></tr></tbody>`; document.getElementById("ofAlerta").innerHTML = ""; return; }
-  const of = ofm.porLoja;
-  document.getElementById("ofNota").textContent = `Export Linx/NBS · ${notaMes(mx)}`;
+  const per = mesesCom(m => D.oficina.meses[m]);
+  if (!per.ms.length){ document.getElementById("ofNota").textContent = ""; document.getElementById("tblOficina").innerHTML = `<tbody><tr><td class="muted">Sem export Linx/NBS colado até ${MES[ultimo()]}.</td></tr></tbody>`; document.getElementById("ofAlerta").innerHTML = ""; return; }
+  const mm = per.ms.map(m => D.oficina.meses[m]);
+  const of = Object.fromEntries(LOJAS.map(l => [l, somaOficina(mm.map(o => o.porLoja[l]))]));
+  const cons = somaOficina(mm.map(o => o.cons));
+  document.getElementById("ofNota").textContent = `Export Linx/NBS · ${notaPer(per)}`;
   const cols = [["passagens","Passagens",v=>nf0.format(v)],["mo","Mão de obra",brlK],["pctMo","% obj. MO",null],["pecas","Peças",brlK],["pctPecas","% obj. peças",null],["total","Total oficina",brlK],["projecao","Projeção fat.",brlK],["ticket","Ticket",brl],["margemPecas","Margem peças",pct],["pecasMo","Peças / MO",v=>nf1.format(v)+"×"]];
   const cell = (r, [k,,f]) => { const v = r?.[k]; if (v == null) return `<td class="n muted">—</td>`; return `<td class="n">${f?f(v):pill(v)}</td>`; };
   const mix = r => r && r.total ? `<div class="bar2" title="MO ${pct(r.mo/r.total)} · Peças ${pct(r.pecas/r.total)}"><span style="width:${r.mo/r.total*100}%"></span><span style="width:${r.pecas/r.total*100}%"></span></div>` : "";
   document.getElementById("tblOficina").innerHTML =
     `<thead><tr><th>Loja</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th>MO × peças</th></tr></thead><tbody>` +
     LOJAS.map(l => `<tr class="${l===visao?"sel":""}"><td>${esc(l)}</td>${cols.map(c=>cell(of[l],c)).join("")}<td>${mix(of[l])}</td></tr>`).join("") +
-    `</tbody><tfoot><tr><td>Total ${LOJAS.length} lojas</td>${cols.map(c=>cell(ofm.cons,c)).join("")}<td>${mix(ofm.cons)}</td></tr></tfoot>`;
-  const sl = ofm.semLoja;
+    `</tbody><tfoot><tr><td>Total ${LOJAS.length} lojas</td>${cols.map(c=>cell(cons,c)).join("")}<td>${mix(cons)}</td></tr></tfoot>`;
+  const sl = [...new Set(mm.flatMap(o => o.semLoja))];
   document.getElementById("ofAlerta").innerHTML = sl.length ? `<div class="alert">${sl.length} colaborador(es) do export sem loja: ${sl.map(esc).join(", ")}. Inclua no quadro de exceções da aba DE-PARA (confira na aba LIGAÇÃO EXPORTS).</div>` : "";
 }
 
 function renderEstoque(){
-  // usa o mês selecionado; se não houver lançamento, o último mês com estoque até ele
-  let m = mes; while (m >= 0 && !D.estoque.some(e => e.mes === m)) m--;
+  const per = mesesCom(m => D.estoque.some(e => e.mes === m));
   const nota = document.getElementById("estNota"), t = document.getElementById("tblEstoque");
-  if (m < 0){ nota.textContent = ""; t.innerHTML = `<tbody><tr><td class="muted">Sem estoque lançado até ${MES[mes]}. Lance na aba compra de peças.</td></tr></tbody>`; return; }
-  nota.textContent = `${MES[m]}/${D.ano}${m!==mes?" (último lançado)":""} · aba compra de peças`;
-  const rows = LOJAS.map(l => [l, D.estoque.find(e => e.mes===m && e.loja===l)]);
+  if (!per.ms.length){ nota.textContent = ""; t.innerHTML = `<tbody><tr><td class="muted">Sem estoque lançado até ${MES[ultimo()]}. Lance na aba compra de peças.</td></tr></tbody>`; return; }
+  nota.textContent = `${notaPer(per).replace(" (soma)", "")} · aba compra de peças`;
+  // vários meses: saldo inicial do primeiro mês, entradas e saídas somadas, saldo final do último
+  const daLoja = l => {
+    const es = per.ms.map(m => D.estoque.find(e => e.mes===m && e.loja===l)).filter(Boolean);
+    if (!es.length) return null;
+    return {inicial: es[0].inicial, entradas: soma(es.map(e => e.entradas || 0)), saidas: soma(es.map(e => e.saidas || 0)), final: es.at(-1).final};
+  };
+  const rows = LOJAS.map(l => [l, daLoja(l)]);
   const tot = {inicial:0,entradas:0,saidas:0,final:0};
   rows.forEach(([,e]) => e && Object.keys(tot).forEach(k => tot[k] += e[k] || 0));
   const varp = e => e && e.inicial ? e.final/e.inicial - 1 : null;
@@ -357,11 +452,17 @@ function renderEstoque(){
 }
 
 function renderRanking(){
-  const mx = mesOficina();
-  const lista = (D.oficina.ranking[mx] || []).filter(r => visao===CONS || r.loja===visao).slice(0,10);
-  document.getElementById("rkNota").textContent = mx < 0 ? "" : `por total oficina · export ${notaMes(mx)}${visao!==CONS?" · "+visao:""}`;
+  const per = mesesCom(m => D.oficina.ranking[m]);
+  // soma cada consultor nos meses do período
+  const acc = new Map();
+  per.ms.forEach(m => (D.oficina.ranking[m] || []).forEach(r => {
+    const k = r.nome + "|" + r.loja, a = acc.get(k) || {nome: r.nome, loja: r.loja, passagens: 0, total: 0};
+    a.passagens += r.passagens || 0; a.total += r.total || 0; acc.set(k, a);
+  }));
+  const lista = [...acc.values()].filter(r => visao===CONS || r.loja===visao).sort((a,b) => b.total - a.total).slice(0,10);
+  document.getElementById("rkNota").textContent = per.ms.length ? `por total oficina · ${notaPer(per)}${visao!==CONS?" · "+visao:""}` : "";
   document.getElementById("tblRanking").innerHTML = `<thead><tr><th>#</th><th>Consultor</th>${visao===CONS?"<th>Loja</th>":""}<th class="n">Pass.</th><th class="n">Total oficina</th><th class="n">Ticket</th></tr></thead><tbody>` +
-    (lista.length ? lista.map((r,i) => `<tr><td class="rank-n">${i+1}</td><td>${esc(r.nome)}</td>${visao===CONS?`<td class="muted">${esc(r.loja)}</td>`:""}<td class="n">${nf0.format(r.passagens||0)}</td><td class="n">${brlK(r.total)}</td><td class="n">${r.ticket!=null?brl(r.ticket):"—"}</td></tr>`).join("")
+    (lista.length ? lista.map((r,i) => `<tr><td class="rank-n">${i+1}</td><td>${esc(r.nome)}</td>${visao===CONS?`<td class="muted">${esc(r.loja)}</td>`:""}<td class="n">${nf0.format(r.passagens)}</td><td class="n">${brlK(r.total)}</td><td class="n">${r.passagens?brl(r.total/r.passagens):"—"}</td></tr>`).join("")
       : `<tr><td colspan="6" class="muted">Nenhum consultor desta loja no export.</td></tr>`) + `</tbody>`;
 }
 
@@ -375,12 +476,13 @@ function renderQualidade(){
 
 function render(){
   document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
-  document.getElementById("tituloMes").textContent = `${MES[mes].toUpperCase()}/${D.ano}` + (visao!==CONS ? " · " + visao : "");
-  elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", k===mes));
+  document.getElementById("tituloMes").textContent = rotuloSel(true) + (visao!==CONS ? " · " + visao : "");
+  elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", sel.includes(k)));
+  elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
   renderKpis(); renderLojas(); renderEvo(); renderConcl(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
   document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
-    `. Faturamento e passagens: soma do ano até o mês; demais: média dos meses lançados. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
+    `. Vários meses: faturamento e passagens somados; margem ponderada pelo faturamento, ticket pelas passagens, demais por média simples. Comparação com o período anterior de mesmo tamanho. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
 }
 render();
 </script>

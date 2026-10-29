@@ -27,7 +27,11 @@ Página única (HTML) com os indicadores de pós-vendas gerada a partir da plani
   (exports Linx/NBS de cada mês + loja da aba LIGAÇÃO EXPORTS), estoque de peças e
   programas de qualidade da montadora. Mês sem export ou estoque usa o último lançado.
 
-Escolha o mês e a visão (consolidado ou uma loja) no topo; clicar numa loja da tabela também muda a visão.
+No topo, escolha o período e a visão (consolidado ou uma loja); clicar numa loja da tabela também muda a visão.
+O período pode ser um atalho (último mês, 1º a 4º trimestre, ano todo) ou qualquer combinação de meses:
+clicar num mês soma ou tira esse mês. Com vários meses, faturamento e passagens são somados, a margem é
+ponderada pelo faturamento, o ticket pelas passagens e os demais indicadores usam média simples; a
+variação compara com o período anterior de mesmo tamanho (em p.p. para indicadores em %).
 
 ## Arquivos
 
