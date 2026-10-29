@@ -329,8 +329,8 @@ function renderKpis(){
 
 function renderLojas(){
   const inds = D.indicadores;
-  const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th>${temMeta(i)?'<th class="n">% meta</th>':""}`).join("")}</tr></thead>`;
-  const celulas = l => inds.map(i => { const x = agrega(i, l, sel); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>` : ""); }).join("");
+  const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th>${temMeta(i)?'<th class="n">Meta</th><th class="n">% meta</th>':""}`).join("")}</tr></thead>`;
+  const celulas = l => inds.map(i => { const x = agrega(i, l, sel); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n muted">${fmt(i, x.mt, true)}</td><td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>` : ""); }).join("");
   const corpo = lojasVis().map(l => `<tr class="click" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${celulas(l)}</tr>`).join("");
   const t = document.getElementById("tblLojas");
   t.innerHTML = head + `<tbody>${corpo}</tbody>` + (visao===CONS ? `<tfoot><tr><td>Consolidado</td>${celulas(CONS)}</tr></tfoot>` : "");
@@ -509,16 +509,20 @@ async function gerarPdf(){
   const pdf = new window.jspdf.jsPDF({orientation: "landscape", unit: "mm", format: "a4"});
   const W = 297, H = 210, M = 8;
   const folhas = ["folha1", "folha2"];
-  for (let i = 0; i < folhas.length; i++){
-    const canvas = await html2canvas(document.getElementById(folhas[i]), {
-      scale: 2, backgroundColor: "#ffffff", windowWidth: 1360, width: 1320,
-      onclone: doc => { doc.body.classList.add("pdf"); doc.getElementById(folhas[i]).style.width = "1320px"; },
-    });
-    const r = Math.min((W - 2*M) / canvas.width, (H - 2*M) / canvas.height);
+  // as duas folhas são capturadas com a mesma largura e altura mínima na proporção da A4
+  const LARG = 1560, ALT = Math.round(LARG * (H - 2*M) / (W - 2*M));
+  const canvases = [];
+  for (const id of folhas) canvases.push(await html2canvas(document.getElementById(id), {
+    scale: 2, backgroundColor: "#ffffff", windowWidth: LARG + 40, width: LARG,
+    onclone: doc => { doc.body.classList.add("pdf"); const f = doc.getElementById(id); f.style.width = LARG + "px"; f.style.minHeight = ALT + "px"; },
+  }));
+  // mesma escala nas duas páginas: a da folha que precisa encolher mais
+  const r = Math.min(...canvases.map(c => Math.min((W - 2*M) / c.width, (H - 2*M) / c.height)));
+  canvases.forEach((canvas, i) => {
     const w = canvas.width * r, h = canvas.height * r;
     if (i) pdf.addPage();
     pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (W - w) / 2, M, w, h);
-  }
+  });
   return pdf;
 }
 const nomeArquivo = () => `One Page Pos-Vendas ${rotuloSel(false).replace(/[\/]/g, "-")}${visao!==CONS ? " " + visao : ""}.pdf`;
