@@ -18,13 +18,14 @@ Página única (HTML) com os indicadores de pós-vendas gerada a partir da plani
 
 ## O que a página mostra
 
-- **Indicadores do mês**: faturamento, margem bruta, passagens, ticket médio, NPS, FFV e DID —
+- **Indicadores do mês**: faturamento, margem bruta, passagens, ticket médio, FFV e DID (e NPS, se a aba existir) —
   realizado, meta, % da meta (verde/amarelo/vermelho pelas faixas da CONFIGURAÇÃO),
   variação vs mês anterior e acumulado/média do ano.
 - **1/2 Resultados**: desempenho por loja, evolução mensal (meta × realizado) por indicador,
   conclusões automáticas e comentários lançados nas abas.
-- **2/2 Oficina**: mão de obra × peças por loja (export Linx/NBS), estoque de peças,
-  top 10 consultores e programas de qualidade da montadora.
+- **2/2 Oficina**: mão de obra × peças por loja e top 10 consultores do mês escolhido
+  (exports Linx/NBS de cada mês + loja da aba LIGAÇÃO EXPORTS), estoque de peças e
+  programas de qualidade da montadora. Mês sem export ou estoque usa o último lançado.
 
 Escolha o mês e a visão (consolidado ou uma loja) no topo; clicar numa loja da tabela também muda a visão.
 
