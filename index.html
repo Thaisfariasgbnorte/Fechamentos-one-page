@@ -3,23 +3,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: painel de oficina — faixa de controles, linha de indicadores, depois duas "páginas" (1/2 resultados, 2/2 oficina) em grade */
+/* Layout: painel de oficina — faixa de controles, linha de indicadores, depois duas folhas (1/2 resultados, 2/2 oficina) em grade.
+   Preto e branco com fundo branco; cor só nas faixas de meta (verde/amarelo/vermelho) e no marcador azul do realizado. */
 :root{
-  --bg:#f3f5f7; --surface:#ffffff; --surface-2:#e9edf1; --line:#d5dce3;
-  --ink:#14212c; --muted:#5b6a78; --accent:#0f5c8c; --accent-soft:#cfe2ef; --meta:#b9c4ce;
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#f2f2f2; --line:#dedede;
+  --ink:#111111; --muted:#5f5f5f; --accent:#111111; --accent-soft:#ececec; --meta:#cfcfcf;
+  --mark:#1f6fb2;
   --good:#1d7a4a; --good-bg:#dcf0e4; --warn:#9a6400; --warn-bg:#fbecc9; --bad:#b3261e; --bad-bg:#f8dcd9;
   --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
   --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --line:#2c3a47;
-  --ink:#e5ecf2; --muted:#93a3b2; --accent:#5aa9dc; --accent-soft:#1d3a50; --meta:#3c4c5b;
-  --good:#5cc98d; --good-bg:#173a28; --warn:#e6b450; --warn-bg:#3d3017; --bad:#f08079; --bad-bg:#46201e; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --line:#2c3a47;
-  --ink:#e5ecf2; --muted:#93a3b2; --accent:#5aa9dc; --accent-soft:#1d3a50; --meta:#3c4c5b;
-  --good:#5cc98d; --good-bg:#173a28; --warn:#e6b450; --warn-bg:#3d3017; --bad:#f08079; --bad-bg:#46201e; color-scheme:dark}
-
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
@@ -89,13 +83,22 @@ ul.concl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;m
 .acoes b{font-size:12px}
 
 .bar2{display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--surface-2);min-width:70px}
-.bar2 span:first-child{background:var(--accent)} .bar2 span:last-child{background:var(--meta)}
+.bar2 span:first-child{background:var(--mark)} .bar2 span:last-child{background:var(--meta)}
 .alert{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 10px;font-size:12px;font-weight:600}
 .rank-n{font-family:var(--f-display);font-weight:800;color:var(--accent)}
+.folha{display:flex;flex-direction:column;gap:20px}
+.so-pdf{display:none;font:700 14px var(--f-display);border-bottom:2px solid var(--ink);padding-bottom:8px}
+.btn-pdf{font:700 13px var(--f-body);background:var(--ink);color:var(--bg);border:1px solid var(--ink);border-radius:6px;padding:7px 14px;cursor:pointer}
+.btn-pdf:hover{background:var(--bg);color:var(--ink)}
+.btn-pdf:disabled{opacity:.5;cursor:progress}
+/* aplicado só na cópia usada para gerar o PDF */
+.pdf .controls{display:none} .pdf .so-pdf{display:block} .pdf .tbl{overflow:visible}
+.pdf #painelEst{grid-column:span 5} .pdf #painelRk{grid-column:span 7} .pdf #painelEst td:first-child{white-space:normal} .pdf table{font-size:12px} .pdf td,.pdf th{padding:5px 4px}
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 </style>
 
 <div class="wrap">
+ <div class="folha" id="folha1">
   <header>
     <div>
       <div class="eyebrow" id="empresa"></div>
@@ -105,6 +108,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="ctl"><span class="eyebrow">Período</span><div class="months" id="atalhos" role="group" aria-label="Atalhos de período"></div></div>
       <div class="ctl"><span class="eyebrow">Meses · clique para somar ou tirar</span><div class="months" id="meses" role="group" aria-label="Meses"></div></div>
       <div class="ctl"><label class="eyebrow" for="visao">Visão</label><select id="visao"></select></div>
+      <div class="ctl"><span class="eyebrow" id="pdfStatus" aria-live="polite">&nbsp;</span><button type="button" class="btn-pdf" id="btnPdf">Exportar PDF</button></div>
     </div>
   </header>
 
@@ -113,11 +117,11 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
   <div class="page-tag"><h2>1/2 · Resultados</h2></div>
   <div class="grid">
     <section class="panel span-12">
-      <div class="hd"><h3>Desempenho por loja</h3><span class="note">Clique numa loja para mudar a visão · cor = faixa de atingimento da meta</span></div>
+      <div class="hd"><h3>Desempenho por loja</h3><span class="note" id="lojasNota"></span></div>
       <div class="tbl"><table id="tblLojas"></table></div>
     </section>
     <section class="panel span-7">
-      <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--accent)"></i>Realizado</span></div></div>
+      <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span></div></div>
       <div class="tabs" id="evoTabs" role="group" aria-label="Indicador do gráfico"></div>
       <div class="chart" id="evo"></div>
     </section>
@@ -128,7 +132,9 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="acoes" id="acoes"></div>
     </section>
   </div>
-
+ </div>
+ <div class="folha" id="folha2">
+  <div class="so-pdf" id="pdfCab"></div>
   <div class="page-tag"><h2>2/2 · Oficina, estoque e qualidade</h2></div>
   <div class="grid">
     <section class="panel span-12">
@@ -136,11 +142,11 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="tbl"><table id="tblOficina"></table></div>
       <div id="ofAlerta"></div>
     </section>
-    <section class="panel span-6">
+    <section class="panel span-6" id="painelEst">
       <div class="hd"><h3>Estoque de peças</h3><span class="note" id="estNota"></span></div>
       <div class="tbl"><table id="tblEstoque"></table></div>
     </section>
-    <section class="panel span-6">
+    <section class="panel span-6" id="painelRk">
       <div class="hd"><h3>Ranking de consultores · top 10</h3><span class="note" id="rkNota"></span></div>
       <div class="tbl"><table id="tblRanking"></table></div>
     </section>
@@ -150,6 +156,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
     </section>
   </div>
   <footer id="rodape"></footer>
+ </div>
 </div>
 
 <script>
@@ -172,6 +179,8 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const faixa = p => p == null || !isFinite(p) ? "none" : p >= D.faixaVerde ? "good" : p >= D.faixaAmarela ? "warn" : "bad";
 const pill = p => `<span class="pill ${faixa(p)}">${pct(p)}</span>`;
 const somaInd = i => i.consolidacao === "soma";
+// lojas exibidas nas tabelas: todas no consolidado, só a escolhida na visão de loja
+const lojasVis = () => visao === CONS ? LOJAS : [visao];
 // indicador sem nenhuma meta lançada (ex.: margem bruta e ticket médio) não mostra meta nem % da meta
 const temMeta = i => [i.metaCons, ...Object.values(i.meta)].some(a => a.some(v => v));
 
@@ -298,8 +307,8 @@ function spark(arr){
   const vs = pts.map(p=>p[1]), lo = Math.min(...vs), hi = Math.max(...vs), rg = hi-lo || 1;
   const x = k => 2 + k*(156/11), y = v => 27 - (v-lo)/rg*23;
   const d = pts.map(([k,v],i)=>(i?"L":"M")+x(k).toFixed(1)+" "+y(v).toFixed(1)).join("");
-  const cur = sel.filter(m => ok(arr[m])).map(m => `<circle cx="${x(m)}" cy="${y(arr[m])}" r="2.8" fill="var(--accent)"/>`).join("");
-  return `<svg viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" opacity=".7"/>${cur}</svg>`;
+  const cur = sel.filter(m => ok(arr[m])).map(m => `<circle cx="${x(m)}" cy="${y(arr[m])}" r="2.8" fill="var(--mark)"/>`).join("");
+  return `<svg viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--mark)" stroke-width="1.5" vector-effect="non-scaling-stroke" opacity=".7"/>${cur}</svg>`;
 }
 
 function renderKpis(){
@@ -322,9 +331,10 @@ function renderLojas(){
   const inds = D.indicadores;
   const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th>${temMeta(i)?'<th class="n">% meta</th>':""}`).join("")}</tr></thead>`;
   const celulas = l => inds.map(i => { const x = agrega(i, l, sel); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>` : ""); }).join("");
-  const corpo = LOJAS.map(l => `<tr class="click${l===visao?" sel":""}" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${celulas(l)}</tr>`).join("");
+  const corpo = lojasVis().map(l => `<tr class="click" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${celulas(l)}</tr>`).join("");
   const t = document.getElementById("tblLojas");
-  t.innerHTML = head + `<tbody>${corpo}</tbody><tfoot><tr class="click${visao===CONS?" sel":""}" data-loja="${CONS}" tabindex="0"><td>Consolidado</td>${celulas(CONS)}</tr></tfoot>`;
+  t.innerHTML = head + `<tbody>${corpo}</tbody>` + (visao===CONS ? `<tfoot><tr><td>Consolidado</td>${celulas(CONS)}</tr></tfoot>` : "");
+  document.getElementById("lojasNota").textContent = visao===CONS ? "Clique numa loja para ver só ela · cor = faixa de atingimento da meta" : "Clique na loja para voltar ao consolidado · cor = faixa de atingimento da meta";
   t.querySelectorAll("tr[data-loja]").forEach(tr => {
     const go = () => setVisao(tr.dataset.loja === visao ? CONS : tr.dataset.loja);
     tr.onclick = go; tr.onkeydown = e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
@@ -346,10 +356,10 @@ function renderEvo(){
     s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(ind, v, true)}</text>`; }
   MES.forEach((nm, k) => {
     const x0 = L + k*bw, cx = x0 + bw/2, on = sel.includes(k);
-    if (on) s += `<rect x="${x0+1}" y="${T-18}" width="${bw-2}" height="${H-T-B+18}" fill="var(--accent-soft)" opacity=".55" rx="3"/>`;
+    if (on) s += `<rect x="${x0+1}" y="${T-18}" width="${bw-2}" height="${H-T-B+18}" fill="var(--accent-soft)" rx="3"/>`;
     if (meta[k]) s += `<rect x="${x0+bw*.14}" y="${y(meta[k])}" width="${bw*.72}" height="${Math.max(0,y(min)-y(meta[k]))}" fill="var(--meta)" rx="2"><title>Meta ${nm}: ${fmt(ind, meta[k])}</title></rect>`;
     if (ok(real[k])) { const top = y(Math.max(real[k],0)), h = Math.abs(y(real[k]) - y(0));
-      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--accent)" opacity="${on?1:.6}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
+      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--mark)" opacity="${on?1:.55}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
     if (on && sel.length <= 4 && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
     s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="11" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${nm}</text>`;
   });
@@ -385,7 +395,7 @@ function renderConcl(){
   document.getElementById("concl").innerHTML = c.map(x => `<li>${x}</li>`).join("");
 
   const ac = [];
-  D.indicadores.forEach(i => Object.entries(i.comentarios).forEach(([l, t]) => { if (visao===CONS || l===visao || l==="GERAL") ac.push(`<div><b>${esc(i.rotulo)} · ${esc(l)}</b><br>${esc(t)}</div>`); }));
+  D.indicadores.forEach(i => Object.entries(i.comentarios).forEach(([l, t]) => { if (visao===CONS || l===visao) ac.push(`<div><b>${esc(i.rotulo)} · ${esc(l)}</b><br>${esc(t)}</div>`); }));
   document.getElementById("acoes").innerHTML = ac.length ? ac.join("") : `<p class="muted">Nenhum comentário lançado. Escreva justificativas e planos de ação no quadro "Comentários e ações do mês" de cada aba da planilha.</p>`;
 }
 
@@ -424,10 +434,10 @@ function renderOficina(){
   const mix = r => r && r.total ? `<div class="bar2" title="MO ${pct(r.mo/r.total)} · Peças ${pct(r.pecas/r.total)}"><span style="width:${r.mo/r.total*100}%"></span><span style="width:${r.pecas/r.total*100}%"></span></div>` : "";
   document.getElementById("tblOficina").innerHTML =
     `<thead><tr><th>Loja</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th>MO × peças</th></tr></thead><tbody>` +
-    LOJAS.map(l => `<tr class="${l===visao?"sel":""}"><td>${esc(l)}</td>${cols.map(c=>cell(of[l],c)).join("")}<td>${mix(of[l])}</td></tr>`).join("") +
-    `</tbody><tfoot><tr><td>Total ${LOJAS.length} lojas</td>${cols.map(c=>cell(cons,c)).join("")}<td>${mix(cons)}</td></tr></tfoot>`;
+    lojasVis().map(l => `<tr><td>${esc(l)}</td>${cols.map(c=>cell(of[l],c)).join("")}<td>${mix(of[l])}</td></tr>`).join("") +
+    `</tbody>` + (visao===CONS ? `<tfoot><tr><td>Total ${LOJAS.length} lojas</td>${cols.map(c=>cell(cons,c)).join("")}<td>${mix(cons)}</td></tr></tfoot>` : "");
   const sl = [...new Set(mm.flatMap(o => o.semLoja))];
-  document.getElementById("ofAlerta").innerHTML = sl.length ? `<div class="alert">${sl.length} colaborador(es) do export sem loja: ${sl.map(esc).join(", ")}. Inclua no quadro de exceções da aba DE-PARA (confira na aba LIGAÇÃO EXPORTS).</div>` : "";
+  document.getElementById("ofAlerta").innerHTML = sl.length && visao===CONS ? `<div class="alert">${sl.length} colaborador(es) do export sem loja: ${sl.map(esc).join(", ")}. Inclua no quadro de exceções da aba DE-PARA (confira na aba LIGAÇÃO EXPORTS).</div>` : "";
 }
 
 function renderEstoque(){
@@ -441,14 +451,14 @@ function renderEstoque(){
     if (!es.length) return null;
     return {inicial: es[0].inicial, entradas: soma(es.map(e => e.entradas || 0)), saidas: soma(es.map(e => e.saidas || 0)), final: es.at(-1).final};
   };
-  const rows = LOJAS.map(l => [l, daLoja(l)]);
+  const rows = lojasVis().map(l => [l, daLoja(l)]);
   const tot = {inicial:0,entradas:0,saidas:0,final:0};
   rows.forEach(([,e]) => e && Object.keys(tot).forEach(k => tot[k] += e[k] || 0));
   const varp = e => e && e.inicial ? e.final/e.inicial - 1 : null;
   const vtd = v => v==null ? `<td class="n muted">—</td>` : `<td class="n delta ${v>0?"down":"up"}">${v>=0?"+":""}${pct(v)}</td>`;
   const tds = e => e ? ["inicial","entradas","saidas","final"].map(k=>`<td class="n">${brlK(e[k])}</td>`).join("") + vtd(varp(e)) : `<td class="n muted" colspan="5">sem lançamento</td>`;
   t.innerHTML = `<thead><tr><th>Loja</th><th class="n">Saldo inicial</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo final</th><th class="n">Var.</th></tr></thead><tbody>` +
-    rows.map(([l,e]) => `<tr class="${l===visao?"sel":""}"><td>${esc(l)}</td>${tds(e)}</tr>`).join("") + `</tbody><tfoot><tr><td>Total</td>${tds(tot)}</tr></tfoot>`;
+    rows.map(([l,e]) => `<tr><td>${esc(l)}</td>${tds(e)}</tr>`).join("") + `</tbody>` + (visao===CONS ? `<tfoot><tr><td>Total</td>${tds(tot)}</tr></tfoot>` : "");
 }
 
 function renderRanking(){
@@ -477,6 +487,7 @@ function renderQualidade(){
 function render(){
   document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
   document.getElementById("tituloMes").textContent = rotuloSel(true) + (visao!==CONS ? " · " + visao : "");
+  document.getElementById("pdfCab").textContent = `${D.empresa} · One Page Pós-Vendas · ${rotuloSel(true)} · ${visao===CONS ? "Consolidado" : visao}`;
   elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", sel.includes(k)));
   elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
@@ -485,4 +496,48 @@ function render(){
     `. Vários meses: faturamento e passagens somados; margem ponderada pelo faturamento, ticket pelas passagens, demais por média simples. Comparação com o período anterior de mesmo tamanho. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
 }
 render();
+
+// ---- Exportar PDF: A4 paisagem, folha 1 (resultados) e folha 2 (oficina, estoque, qualidade) ----
+const carregar = src => new Promise((ok_, erro) => {
+  const el = document.createElement("script"); el.src = src; el.onload = ok_; el.onerror = () => erro(new Error("Não foi possível carregar " + src));
+  document.head.appendChild(el);
+});
+async function gerarPdf(){
+  if (!window.html2canvas) await carregar("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+  if (!window.jspdf) await carregar("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  if (document.fonts?.ready) await document.fonts.ready;
+  const pdf = new window.jspdf.jsPDF({orientation: "landscape", unit: "mm", format: "a4"});
+  const W = 297, H = 210, M = 8;
+  const folhas = ["folha1", "folha2"];
+  for (let i = 0; i < folhas.length; i++){
+    const canvas = await html2canvas(document.getElementById(folhas[i]), {
+      scale: 2, backgroundColor: "#ffffff", windowWidth: 1360, width: 1320,
+      onclone: doc => { doc.body.classList.add("pdf"); doc.getElementById(folhas[i]).style.width = "1320px"; },
+    });
+    const r = Math.min((W - 2*M) / canvas.width, (H - 2*M) / canvas.height);
+    const w = canvas.width * r, h = canvas.height * r;
+    if (i) pdf.addPage();
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (W - w) / 2, M, w, h);
+  }
+  return pdf;
+}
+const nomeArquivo = () => `One Page Pos-Vendas ${rotuloSel(false).replace(/[\/]/g, "-")}${visao!==CONS ? " " + visao : ""}.pdf`;
+const elPdf = document.getElementById("btnPdf"), elPdfStatus = document.getElementById("pdfStatus");
+elPdf.onclick = async () => {
+  elPdf.disabled = true; elPdfStatus.textContent = "Gerando PDF…";
+  try {
+    const pdf = await gerarPdf(), nome = nomeArquivo();
+    if (window.claude?.use) {
+      // dentro do claude.ai o download passa pela confirmação do visualizador
+      const dl = await window.claude.use("downloads");
+      if (!dl) { elPdfStatus.textContent = "Download indisponível nesta visualização"; return; }
+      try { await dl.save({filename: nome, data: pdf.output("blob")}); elPdfStatus.textContent = "PDF salvo"; }
+      catch (e) { elPdfStatus.textContent = e?.code === "declined" ? "Download cancelado" : e?.code === "rate_limited" ? "Aguarde e tente de novo" : "Não foi possível salvar o PDF"; }
+    } else {
+      pdf.save(nome); elPdfStatus.textContent = "PDF salvo";
+    }
+  } catch (e) {
+    elPdfStatus.textContent = "Erro ao gerar o PDF"; console.error(e);
+  } finally { elPdf.disabled = false; }
+};
 </script>

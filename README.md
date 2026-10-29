@@ -33,6 +33,9 @@ clicar num mês soma ou tira esse mês. Com vários meses, faturamento e passage
 ponderada pelo faturamento, o ticket pelas passagens e os demais indicadores usam média simples; a
 variação compara com o período anterior de mesmo tamanho (em p.p. para indicadores em %).
 
+**Exportar PDF** gera 2 páginas A4 paisagem (resultados; oficina, estoque e qualidade) do período e da
+visão escolhidos. Escolhendo uma loja, todas as tabelas mostram só aquela loja.
+
 ## Arquivos
 
 - `gerar_one_page.py` — lê a planilha e grava o HTML.
