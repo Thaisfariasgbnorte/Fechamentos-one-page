@@ -1,0 +1,378 @@
+<title>One Page Pós-Vendas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: painel de oficina — faixa de controles, linha de indicadores, depois duas "páginas" (1/2 resultados, 2/2 oficina) em grade */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --surface-2:#e9edf1; --line:#d5dce3;
+  --ink:#14212c; --muted:#5b6a78; --accent:#0f5c8c; --accent-soft:#cfe2ef; --meta:#b9c4ce;
+  --good:#1d7a4a; --good-bg:#dcf0e4; --warn:#9a6400; --warn-bg:#fbecc9; --bad:#b3261e; --bad-bg:#f8dcd9;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --line:#2c3a47;
+  --ink:#e5ecf2; --muted:#93a3b2; --accent:#5aa9dc; --accent-soft:#1d3a50; --meta:#3c4c5b;
+  --good:#5cc98d; --good-bg:#173a28; --warn:#e6b450; --warn-bg:#3d3017; --bad:#f08079; --bad-bg:#46201e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --line:#2c3a47;
+  --ink:#e5ecf2; --muted:#93a3b2; --accent:#5aa9dc; --accent-soft:#1d3a50; --meta:#3c4c5b;
+  --good:#5cc98d; --good-bg:#173a28; --warn:#e6b450; --warn-bg:#3d3017; --bad:#f08079; --bad-bg:#46201e; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+.num,td.n,th.n{font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* cabeçalho */
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:14px}
+header h1{font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.01em}
+header h1 span{color:var(--accent)}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.months{display:flex;flex-wrap:wrap;gap:2px;background:var(--surface-2);padding:3px;border-radius:6px}
+.months button{font:600 12px var(--f-body);border:0;background:transparent;color:var(--ink);padding:5px 8px;border-radius:4px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em}
+.months button:disabled{color:var(--muted);opacity:.45;cursor:default}
+.months button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+select{font:500 13px var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;max-width:100%}
+button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* indicadores */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.kpi .val{font-family:var(--f-display);font-size:24px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .val.empty{font-size:14px;font-weight:500;color:var(--muted);font-family:var(--f-body)}
+.kpi .sub{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted)}
+.kpi svg{width:100%;height:30px;display:block}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.none{background:var(--surface-2);color:var(--muted)}
+.delta.up{color:var(--good)} .delta.down{color:var(--bad)}
+
+/* páginas */
+.page-tag{display:flex;align-items:center;gap:10px}
+.page-tag h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+.page-tag::after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:16px;font-weight:700}
+.panel .hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
+.panel .note{font-size:12px;color:var(--muted)}
+.span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}.span-6{grid-column:span 6}
+@media (max-width:1240px){.span-6{grid-column:span 12}}
+@media (max-width:960px){.span-7,.span-5{grid-column:span 12}}
+
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:right}
+tbody tr.sel td{background:var(--accent-soft)}
+tbody tr.click{cursor:pointer} tbody tr.click:hover td{background:var(--surface-2)}
+tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+.muted{color:var(--muted)}
+
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tabs button{font:600 12px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+ul.concl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:75ch}
+.acoes{display:flex;flex-direction:column;gap:8px}
+.acoes div{border-left:3px solid var(--line);padding-left:10px}
+.acoes b{font-size:12px}
+
+.bar2{display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--surface-2);min-width:70px}
+.bar2 span:first-child{background:var(--accent)} .bar2 span:last-child{background:var(--meta)}
+.alert{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 10px;font-size:12px;font-weight:600}
+.rank-n{font-family:var(--f-display);font-weight:800;color:var(--accent)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow" id="empresa"></div>
+      <h1>One Page <span>Pós-Vendas</span> · <span id="tituloMes" class="num"></span></h1>
+    </div>
+    <div class="controls">
+      <div class="ctl"><label class="eyebrow">Mês de fechamento</label><div class="months" id="meses" role="group" aria-label="Mês"></div></div>
+      <div class="ctl"><label class="eyebrow" for="visao">Visão</label><select id="visao"></select></div>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Indicadores do mês"></section>
+
+  <div class="page-tag"><h2>1/2 · Resultados</h2></div>
+  <div class="grid">
+    <section class="panel span-12">
+      <div class="hd"><h3>Desempenho por loja</h3><span class="note">Clique numa loja para mudar a visão · cor = faixa de atingimento da meta</span></div>
+      <div class="tbl"><table id="tblLojas"></table></div>
+    </section>
+    <section class="panel span-7">
+      <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--accent)"></i>Realizado</span></div></div>
+      <div class="tabs" id="evoTabs" role="group" aria-label="Indicador do gráfico"></div>
+      <div class="chart" id="evo"></div>
+    </section>
+    <section class="panel span-5">
+      <h3>Principais conclusões</h3>
+      <ul class="concl" id="concl"></ul>
+      <h3>Ações e comentários do mês</h3>
+      <div class="acoes" id="acoes"></div>
+    </section>
+  </div>
+
+  <div class="page-tag"><h2>2/2 · Oficina, estoque e qualidade</h2></div>
+  <div class="grid">
+    <section class="panel span-12">
+      <div class="hd"><h3>Mão de obra × peças por loja</h3><span class="note" id="ofNota"></span></div>
+      <div class="tbl"><table id="tblOficina"></table></div>
+      <div id="ofAlerta"></div>
+    </section>
+    <section class="panel span-6">
+      <div class="hd"><h3>Estoque de peças</h3><span class="note" id="estNota"></span></div>
+      <div class="tbl"><table id="tblEstoque"></table></div>
+    </section>
+    <section class="panel span-6">
+      <div class="hd"><h3>Ranking de consultores · top 10</h3><span class="note" id="rkNota"></span></div>
+      <div class="tbl"><table id="tblRanking"></table></div>
+    </section>
+    <section class="panel span-12">
+      <div class="hd"><h3>Qualidade montadora</h3><span class="note" id="qmNota"></span></div>
+      <div class="tbl"><table id="tblQualidade"></table></div>
+    </section>
+  </div>
+  <footer id="rodape"></footer>
+</div>
+
+<script>
+const D = {"empresa": "Grupo Bastazini", "ano": 2026, "mesExport": 9, "periodo1": "Gestão anterior", "periodo2": "Denys Loureiro", "inicioPeriodo2": null, "faixaVerde": 1, "faixaAmarela": 0.9, "lojas": ["VOLVO BELÉM", "TOCAUTO AUTO", "MITSUBISHI MANAUS", "MITSUBISHI BOA VISTA", "OMODA BOA VISTA", "OMODA IMPERATRIZ", "TOCAUTO CAMINHÕES BALSAS", "VOLVO MANAUS", "TOCAUTO CAMINHÕES IMPERATRIZ"], "meses": ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"], "indicadores": [{"chave": "fat", "rotulo": "Faturamento", "unidade": "R$", "consolidacao": "soma", "fonte": "Apollo", "real": {"VOLVO BELÉM": [202147, 127398, 133340, 157676, 220793, 196243, 166539, 160343, 82997, null, null, null], "TOCAUTO AUTO": [693273, 587538, 696325, 636328, 702269, 694571, 792192, 734062, 806228, null, null, null], "MITSUBISHI MANAUS": [584359, 506237, 677219, 677890, 737269, 662743, 750978, 802953, 863586, null, null, null], "MITSUBISHI BOA VISTA": [317948, 349795, 329234, 363118, 346401, 362151, 383647, 410370, 326002, null, null, null], "OMODA BOA VISTA": [0, 0, 0, 0, 0, 0, 0, 6200, 13202, null, null, null], "OMODA IMPERATRIZ": [0, 0, 0, 0, 0, 0, 0, 0, 0, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [160862, 266939, 206298, 189531, 299534, 298005, 306763, 261561, 159090, null, null, null], "VOLVO MANAUS": [320534, 335304, 379623, 305245, 539344, 415694, 317090, 333899, 232329, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [1217061, 905068, 767396, 1235438, 1036539, 835921, 685036, 1186216, 809547, null, null, null]}, "realCons": [3496184, 3078279, 3189435, 3565226, 3882149, 3465328, 3402245, 3895604, 3292981, null, null, null], "meta": {"VOLVO BELÉM": [106635.7127123891, 106635.7127123891, 106635.7127123891, 106635.7127123891, 106635.7127123891, 106635.7127123891, 106635.7127123891, 106635.7127123891, 106635.7127123891, 106635.7127123891, null, null], "TOCAUTO AUTO": [768796.4711666666, 768796.4711666666, 768796.4711666666, 768796.4711666666, 768796.4711666666, 768796.4711666666, 768796.4711666666, 768796.4711666666, 768796.4711666666, 768796.4711666666, null, null], "MITSUBISHI MANAUS": [584358.2822, 584358.2822, 584358.2822, 584358.2822, 584358.2822, 584358.2822, 584358.2822, 584358.2822, 584358.2822, 584358.2822, null, null], "MITSUBISHI BOA VISTA": [344177.1356833333, 344177.1356833333, 344177.1356833333, 344177.1356833333, 344177.1356833333, 344177.1356833333, 344177.1356833333, 344177.1356833333, 344177.1356833333, 344177.1356833333, null, null], "OMODA BOA VISTA": [0, 0, 0, 0, 0, 0, 0, 6200, 6200, 9000, null, null], "OMODA IMPERATRIZ": [0, 0, 0, 0, 0, 0, 0, 0, 0, 6200, null, null], "TOCAUTO CAMINHÕES BALSAS": [288127.6556440301, 288127.6556440301, 288127.6556440301, 288127.6556440301, 288127.6556440301, 288127.6556440301, 288127.6556440301, 288127.6556440301, 288127.6556440301, 288127.6556440301, null, null], "VOLVO MANAUS": [502099.6604250001, 502099.6604250001, 502099.6604250001, 502099.6604250001, 502099.6604250001, 502099.6604250001, 502099.6604250001, 502099.6604250001, 502099.6604250001, 502099.6604250001, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [1327910.508866667, 1327910.508866667, 1327910.508866667, 1327910.508866667, 1327910.508866667, 1327910.508866667, 1327910.508866667, 1327910.508866667, 1327910.508866667, 1327910.508866667, null, null]}, "metaCons": [3922105.426698086, 3922105.426698086, 3922105.426698086, 3922105.426698086, 3922105.426698086, 3922105.426698086, 3922105.426698086, 3928305.426698086, 3928305.426698086, 3937305.426698086, null, null], "comentarios": {}}, {"chave": "margem", "rotulo": "Margem bruta", "unidade": "%", "consolidacao": "media_pond_fat", "fonte": "Apollo", "real": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, 33.774011003676996, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, 34.93176752187007, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, 41.77721180397912, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, 26.17820629640699, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, 39.88275859485408, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, 29.770162638680482, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, 32.819418922405404, null, null]}, "realCons": [null, null, null, null, null, null, null, null, null, 34.7294313386744, null, null], "meta": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "metaCons": [null, null, null, null, null, null, null, null, null, null, null, null], "comentarios": {}}, {"chave": "pass", "rotulo": "Passagens", "unidade": "qtd", "consolidacao": "soma", "fonte": "BI", "real": {"VOLVO BELÉM": [23, 22, 25, 25, 18, 32, 26, 24, 23, 21, null, null], "TOCAUTO AUTO": [458, 363, 517, 403, 447, 501, 579, 594, 587, 452, null, null], "MITSUBISHI MANAUS": [155, 143, 202, 151, 192, 172, 216, 204, 180, 162, null, null], "MITSUBISHI BOA VISTA": [77, 108, 113, 112, 99, 89, 110, 111, 94, 81, null, null], "OMODA BOA VISTA": [0, 0, 0, 0, 0, 0, 0, 2, 4, null, null, null], "OMODA IMPERATRIZ": [0, 0, 0, 0, 0, 0, 0, 0, 0, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [36, 48, 36, 35, 27, 35, 47, 46, 23, 42, null, null], "VOLVO MANAUS": [48, 49, 57, 44, 55, 54, 58, 60, 41, 46, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [160, 166, 120, 150, 147, 136, 122, 148, 124, 83, null, null]}, "realCons": [957, 899, 1070, 920, 985, 1019, 1158, 1189, 1076, 887, null, null], "meta": {"VOLVO BELÉM": [8, 10, 7, 15, 16, 11, 10, 13, 12, 9, 15, 26], "TOCAUTO AUTO": [235, 342, 302, 343, 406, 391, 363, 428, 368, 329, 339, 354], "MITSUBISHI MANAUS": [172, 93, 108, 124, 183, 204, 167, 160, 155, 142, 146, 156], "MITSUBISHI BOA VISTA": [112, 129, 61, 100, 71, 105, 96, 110, 112, 102, 108, 205], "OMODA BOA VISTA": [0, 0, 0, 0, 0, 0, 0, 2, 4, 3, 5, 6], "OMODA IMPERATRIZ": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "TOCAUTO CAMINHÕES BALSAS": [43, 46, 53, 46, 58, 43, 45, 52, 52, 50, 43, 49], "VOLVO MANAUS": [43, 29, 54, 63, 63, 55, 65, 70, 50, 46, 85, 56], "TOCAUTO CAMINHÕES IMPERATRIZ": [137, 117, 202, 233, 227, 253, 413, 229, 328, 226, 289, 297]}, "metaCons": [750, 766, 787, 924, 1024, 1062, 1159, 1064, 1081, 907, 1030, 1149], "comentarios": {}}, {"chave": "ticket", "rotulo": "Ticket médio", "unidade": "R$", "consolidacao": "media_pond_pass", "fonte": "Apollo", "real": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, 4040.9709523809524, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, 900.7152876106195, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, 2388.5783333333334, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, 2608.671851851852, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, 5576.549047619048, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, 4962.285217391304, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, 4593.30421686747, null, null]}, "realCons": [null, null, null, null, null, null, null, null, null, 2180.338489289741, null, null], "meta": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "metaCons": [null, null, null, null, null, null, null, null, null, null, null, null], "comentarios": {}}, {"chave": "nps", "rotulo": "NPS", "unidade": "pts", "consolidacao": "media", "fonte": "Focus", "real": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "realCons": [null, null, null, null, null, null, null, null, null, null, null, null], "meta": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "metaCons": [null, null, null, null, null, null, null, null, null, null, null, null], "comentarios": {}}, {"chave": "ffv", "rotulo": "FFV", "unidade": "%", "consolidacao": "media", "fonte": "Focus", "real": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "realCons": [null, null, null, null, null, null, null, null, null, null, null, null], "meta": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "metaCons": [null, null, null, null, null, null, null, null, null, null, null, null], "comentarios": {}}, {"chave": "did", "rotulo": "DID", "unidade": "%", "consolidacao": "media", "fonte": "E-mail Stellantis", "real": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "realCons": [null, null, null, null, null, null, null, null, null, null, null, null], "meta": {"VOLVO BELÉM": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO AUTO": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "MITSUBISHI BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA BOA VISTA": [null, null, null, null, null, null, null, null, null, null, null, null], "OMODA IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES BALSAS": [null, null, null, null, null, null, null, null, null, null, null, null], "VOLVO MANAUS": [null, null, null, null, null, null, null, null, null, null, null, null], "TOCAUTO CAMINHÕES IMPERATRIZ": [null, null, null, null, null, null, null, null, null, null, null, null]}, "metaCons": [null, null, null, null, null, null, null, null, null, null, null, null], "comentarios": {}}], "oficina": {"porLoja": {"VOLVO BELÉM": {"passagens": 21, "mo": 19981.35, "objMo": null, "pctMo": null, "pecas": 64879.04, "objPecas": null, "pctPecas": null, "total": 84860.39, "projecao": 144653.588, "ticket": 4040.9709523809524, "lbPecas": 21912.25410868, "margemPecas": 0.33774011003676996, "pecasMo": 3.2469798086715866, "colaboradores": 2}, "TOCAUTO AUTO": {"passagens": 452, "mo": 171878.30000000002, "objMo": 193138, "pctMo": 0.8899248205946009, "pecas": 235245.01, "objPecas": 527608, "pctPecas": 0.44587081697017483, "total": 407123.31, "projecao": 450293.0153968254, "ticket": 900.7152876106195, "lbPecas": 82175.24, "margemPecas": 0.3493176752187007, "pecasMo": 1.3686719614983391, "colaboradores": 4}, "MITSUBISHI MANAUS": {"passagens": 162, "mo": 136274.56, "objMo": 185992, "pctMo": 0.7326904382984214, "pecas": 250675.13, "objPecas": 398368, "pctPecas": 0.6292551861595309, "total": 386949.69, "projecao": 431987.01568421046, "ticket": 2388.5783333333334, "lbPecas": 104725.08, "margemPecas": 0.4177721180397912, "pecasMo": 1.8394858879016012, "colaboradores": 4}, "MITSUBISHI BOA VISTA": {"passagens": 81, "mo": 54816.03000000001, "objMo": 71474, "pctMo": 0.7669366482916867, "pecas": 156486.39, "objPecas": 271703, "pctPecas": 0.5759464930457154, "total": 211302.42, "projecao": 239476.0760000001, "ticket": 2608.671851851852, "lbPecas": 40965.33, "margemPecas": 0.2617820629640699, "pecasMo": 2.854755990172947, "colaboradores": 2}, "OMODA BOA VISTA": {"passagens": null, "mo": null, "objMo": null, "pctMo": null, "pecas": null, "objPecas": null, "pctPecas": null, "total": null, "projecao": null, "ticket": null, "lbPecas": null, "margemPecas": null, "pecasMo": null, "colaboradores": 0}, "OMODA IMPERATRIZ": {"passagens": null, "mo": null, "objMo": null, "pctMo": null, "pecas": null, "objPecas": null, "pctPecas": null, "total": null, "projecao": null, "ticket": null, "lbPecas": null, "margemPecas": null, "pecasMo": null, "colaboradores": 0}, "TOCAUTO CAMINHÕES BALSAS": {"passagens": 42, "mo": 39348.75, "objMo": 25025, "pctMo": 1.5723776223776225, "pecas": 194866.31, "objPecas": 199613, "pctPecas": 0.9762205367385891, "total": 234215.06, "projecao": 256521.2561904762, "ticket": 5576.549047619048, "lbPecas": 77718.06, "margemPecas": 0.39882758594854084, "pecasMo": 4.952287175577369, "colaboradores": 1}, "VOLVO MANAUS": {"passagens": 46, "mo": 41740.15, "objMo": null, "pctMo": null, "pecas": 186524.97, "objPecas": null, "pctPecas": null, "total": 228265.12, "projecao": 285473.7780769231, "ticket": 4962.285217391304, "lbPecas": 55528.78693074998, "margemPecas": 0.2977016263868048, "pecasMo": 4.468718248496951, "colaboradores": 2}, "TOCAUTO CAMINHÕES IMPERATRIZ": {"passagens": 83, "mo": 122948.97, "objMo": 134231.95, "pctMo": 0.9159441548751992, "pecas": 258295.28, "objPecas": 891019, "pctPecas": 0.2898875108162677, "total": 381244.25000000006, "projecao": 436997.04099999997, "ticket": 4593.30421686747, "lbPecas": 84771.01000000001, "margemPecas": 0.328194189224054, "pecasMo": 2.100833215601562, "colaboradores": 4}, "CONSOLIDADO (9 lojas)": {"passagens": 887, "mo": 586988.1100000001, "objMo": 609860.95, "pctMo": 0.9624949916862199, "pecas": 1346972.13, "objPecas": 2288311, "pctPecas": 0.5886315846054142, "total": 1933960.2400000002, "projecao": 2245401.7703484353, "ticket": 2180.338489289741, "lbPecas": 467795.76103943004, "margemPecas": 0.347294313386744, "pecasMo": 2.29471791174782, "colaboradores": 19}, "SEM LOJA (corrija no DE-PARA)": {"passagens": 5, "mo": 4100, "objMo": null, "pctMo": null, "pecas": -782.57, "objPecas": null, "pctPecas": null, "total": 3317.43, "projecao": 4485.623333333334, "ticket": 663.486, "lbPecas": -325.16, "margemPecas": 0.41550276652567825, "pecasMo": -0.19087073170731708, "colaboradores": 3}}, "semLoja": ["ADMIN", "JOEVERTON CAMPOS DE OLIVEIRA", "WALISON LIMA DOS SANTOS"], "ranking": [{"origem": "Linx", "nome": "JOSAFA ALVES DE SOUSA", "loja": "TOCAUTO AUTO", "passagens": 234, "mo": 94560.29000000001, "pecas": 166772.11, "total": 261332.4, "ticket": 1116.805128205128, "margem": 0.34497500811136833}, {"origem": "Linx", "nome": "WALLISON OLIVEIRA LIMA", "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "passagens": 61, "mo": 88010.35, "pecas": 147036.41, "total": 235046.76, "ticket": 3853.225573770492, "margem": 0.3126213432441665}, {"origem": "Linx", "nome": "KAREN ROCHA MARQUES", "loja": "TOCAUTO CAMINHÕES BALSAS", "passagens": 42, "mo": 39348.75, "pecas": 194866.31, "total": 234215.06, "ticket": 5576.549047619048, "margem": 0.39882758594854084}, {"origem": "Linx", "nome": "Karina de Carvalho Pereira", "loja": "MITSUBISHI MANAUS", "passagens": 85, "mo": 72611.56, "pecas": 160944.74, "total": 233556.3, "ticket": 2747.721176470588, "margem": 0.4036879987503786}, {"origem": "Linx", "nome": "MARIO DOS SANTOS CAMPELO", "loja": "MITSUBISHI BOA VISTA", "passagens": 81, "mo": 54816.03000000001, "pecas": 156486.39, "total": 211302.42, "ticket": 2608.671851851852, "margem": 0.2617820629640699}, {"origem": "NBS", "nome": "ROMARIO TAVARES BORGES", "loja": "VOLVO MANAUS", "passagens": 30, "mo": 27783.75, "pecas": 135017.82, "total": 162801.57, "ticket": 5426.719, "margem": 0.31317870562278355}, {"origem": "Linx", "nome": "Renne Lemos Cavalcante de Souza", "loja": "MITSUBISHI MANAUS", "passagens": 76, "mo": 63663, "pecas": 89730.39, "total": 153393.39, "ticket": 2018.3340789473687, "margem": 0.44303407128844535}, {"origem": "Linx", "nome": "PEDRO LIMA MIRANDA", "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "passagens": 21, "mo": 30639.42, "pecas": 111258.87, "total": 141898.29, "ticket": 6757.061428571429, "margem": 0.34877479880929946}, {"origem": "Linx", "nome": "Halyne Sousa Lima", "loja": "TOCAUTO AUTO", "passagens": 175, "mo": 73323.51000000001, "pecas": 67670.95, "total": 140994.46, "ticket": 805.6826285714285, "margem": 0.36260492870278904}, {"origem": "NBS", "nome": "CLAUDIO RODRIGO ALVES MARINHO", "loja": "VOLVO MANAUS", "passagens": 16, "mo": 13956.4, "pecas": 51507.15, "total": 65463.55, "ticket": 4091.471875, "margem": 0.25713091924402726}, {"origem": "NBS", "nome": "YANN RAPHAEL DIAS DE FIGUEIREDO", "loja": "VOLVO BELÉM", "passagens": 16, "mo": 13293.19, "pecas": 49374.79, "total": 62667.98, "ticket": 3916.74875, "margem": 0.2980451267555771}, {"origem": "NBS", "nome": "VALDIR RIBEIRO DE SOUSA", "loja": "VOLVO BELÉM", "passagens": 5, "mo": 6688.16, "pecas": 15504.25, "total": 22192.41, "ticket": 4438.482, "margem": 0.46415263973426646}, {"origem": "Linx", "nome": "EDINALVA DA SILVA NASCIMENTO", "loja": "TOCAUTO AUTO", "passagens": 43, "mo": 3994.5, "pecas": 801.95, "total": 4796.45, "ticket": 111.5453488372093, "margem": 0.1311927177504832}, {"origem": "Linx", "nome": "LUCIANO DE SOUSA ALENCAR", "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "passagens": 1, "mo": 4299.2, "pecas": 0, "total": 4299.2, "ticket": 4299.2, "margem": null}]}, "estoque": [{"mes": 0, "loja": "MITSUBISHI BOA VISTA", "inicial": 755186.58, "entradas": 252124.56, "saidas": 170850.79, "final": 838900.22}, {"mes": 0, "loja": "MITSUBISHI MANAUS", "inicial": 992531.21, "entradas": 220953.11, "saidas": 167084.69, "final": 1048080.91}, {"mes": 0, "loja": "VOLVO MANAUS", "inicial": 849916, "entradas": 286738.27, "saidas": 185846.01, "final": 932440}, {"mes": 0, "loja": "VOLVO BELÉM", "inicial": 371947, "entradas": 112267.06, "saidas": 117553.8, "final": 369386}, {"mes": 0, "loja": "TOCAUTO AUTO", "inicial": 1333760.19, "entradas": 429999.2, "saidas": 333621.03, "final": 1430227.72}, {"mes": 0, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3602967.76, "entradas": 444444.54, "saidas": 592971.88, "final": 3409994.44}, {"mes": 0, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 616403.34, "entradas": 290981.64, "saidas": 96846.92, "final": 847295.97}, {"mes": 1, "loja": "MITSUBISHI BOA VISTA", "inicial": 838900.22, "entradas": 104761.85, "saidas": 196049.49, "final": 716202.32}, {"mes": 1, "loja": "MITSUBISHI MANAUS", "inicial": 1048080.91, "entradas": 361988.75, "saidas": 226372.98, "final": 1097546.72}, {"mes": 1, "loja": "VOLVO MANAUS", "inicial": 932440, "entradas": 189664.13, "saidas": 191495.24, "final": 830905}, {"mes": 1, "loja": "VOLVO BELÉM", "inicial": 369386, "entradas": 10773.56, "saidas": 2578.68, "final": 360099.58}, {"mes": 1, "loja": "TOCAUTO AUTO", "inicial": 1430227.72, "entradas": 243664.14, "saidas": 264160.38, "final": 1212390.76}, {"mes": 1, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3409994.44, "entradas": 553293.24, "saidas": 474628.6, "final": 3098400.73}, {"mes": 1, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 847295.97, "entradas": 216841.88, "saidas": 136468.08, "final": 947367.94}, {"mes": 2, "loja": "MITSUBISHI BOA VISTA", "inicial": 716202.32, "entradas": 68617.14, "saidas": 31641.99, "final": 727260.91}, {"mes": 2, "loja": "MITSUBISHI MANAUS", "inicial": 1097546.72, "entradas": 322491.83, "saidas": 295088.64, "final": 1141591.22}, {"mes": 2, "loja": "VOLVO MANAUS", "inicial": 830905, "entradas": 341108.22, "saidas": 246949.14, "final": 902801.99}, {"mes": 2, "loja": "VOLVO BELÉM", "inicial": 360099.58, "entradas": 76494.28, "saidas": 54102.89, "final": 370660.26}, {"mes": 2, "loja": "TOCAUTO AUTO", "inicial": 1212390.76, "entradas": 455058.23, "saidas": 321420.08, "final": 1318486.73}, {"mes": 2, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3098400.73, "entradas": 931670.46, "saidas": 387977.84, "final": 3615201.84}, {"mes": 2, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 947367.94, "entradas": 332358.13, "saidas": 119127.3, "final": 1202376.5}, {"mes": 3, "loja": "MITSUBISHI BOA VISTA", "inicial": 727260.91, "entradas": 247629.06, "saidas": 208600.16, "final": 778581.55}, {"mes": 3, "loja": "MITSUBISHI MANAUS", "inicial": 1141591.22, "entradas": 462736.63, "saidas": 292113.84, "final": 1318570.5}, {"mes": 3, "loja": "VOLVO MANAUS", "inicial": 902801.99, "entradas": 265023.22, "saidas": 143720.72, "final": 1067599.2}, {"mes": 3, "loja": "VOLVO BELÉM", "inicial": 370660.26, "entradas": 118247.5, "saidas": 74464.74, "final": 408884.24}, {"mes": 3, "loja": "TOCAUTO AUTO", "inicial": 1318486.73, "entradas": 174231.18, "saidas": 293279.63, "final": 1195611.86}, {"mes": 3, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3615201.84, "entradas": 172690.23, "saidas": 624299.39, "final": 3130433.55}, {"mes": 3, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 1202376.5, "entradas": 28061.89, "saidas": 102814.99, "final": 1158906.54}, {"mes": 4, "loja": "MITSUBISHI BOA VISTA", "inicial": 778581.55, "entradas": 164101.45, "saidas": 203164.1, "final": 730895.02}, {"mes": 4, "loja": "MITSUBISHI MANAUS", "inicial": 1318570.5, "entradas": 196030.76, "saidas": 268730.81, "final": 1248777.01}, {"mes": 4, "loja": "VOLVO MANAUS", "inicial": 1067599.2, "entradas": 206214.76, "saidas": 311550.32, "final": 966080.3}, {"mes": 4, "loja": "VOLVO BELÉM", "inicial": 408884.24, "entradas": 207749.11, "saidas": 121970.62, "final": 514164.28}, {"mes": 4, "loja": "TOCAUTO AUTO", "inicial": 1195611.86, "entradas": 305298.54, "saidas": 324491.8, "final": 1181928.49}, {"mes": 4, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3130433.55, "entradas": 463494.56, "saidas": 497690.07, "final": 3085591.46}, {"mes": 4, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 1158906.54, "entradas": 91351.72, "saidas": 197708.86, "final": 1072212.7}, {"mes": 5, "loja": "MITSUBISHI BOA VISTA", "inicial": 730895.02, "entradas": 374424.9, "saidas": 206139.37, "final": 900581.59}, {"mes": 5, "loja": "MITSUBISHI MANAUS", "inicial": 1248777.01, "entradas": 431350.56, "saidas": 280542.68, "final": 1402913.23}, {"mes": 5, "loja": "VOLVO MANAUS", "inicial": 966080.3, "entradas": 201809.69, "saidas": 284444.18, "final": 985787.84}, {"mes": 5, "loja": "VOLVO BELÉM", "inicial": 514164.28, "entradas": 49800.42, "saidas": 105286.12, "final": 442306.46}, {"mes": 5, "loja": "TOCAUTO AUTO", "inicial": 1181928.49, "entradas": 373747.9, "saidas": 296979.37, "final": 1269007.37}, {"mes": 5, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3085591.49, "entradas": 513892.53, "saidas": 425367.33, "final": 3168335.35}, {"mes": 5, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 1072212.7, "entradas": 139469.48, "saidas": 173899.13, "final": 1105557.87}, {"mes": 5, "loja": "OMODA BOA VISTA", "inicial": null, "entradas": 132459.87, "saidas": null, "final": 132459.87}, {"mes": 6, "loja": "MITSUBISHI BOA VISTA", "inicial": 900581.5900000001, "entradas": 224760.3, "saidas": 256404.18, "final": 878356.45}, {"mes": 6, "loja": "MITSUBISHI MANAUS", "inicial": 1402913.23, "entradas": 233775.15, "saidas": 246222.68, "final": 1392533.87}, {"mes": 6, "loja": "VOLVO MANAUS", "inicial": 749592.83704602, "entradas": 170826.26, "saidas": 160944.51561509, "final": 770466.9185364102}, {"mes": 6, "loja": "VOLVO BELÉM", "inicial": 400187.64669467, "entradas": 129687.35, "saidas": 89037.44566659998, "final": 443281.35355815}, {"mes": 6, "loja": "TOCAUTO AUTO", "inicial": 1269007.37, "entradas": 371442.22, "saidas": 308012.35, "final": 1332437.24}, {"mes": 6, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3168335.35, "entradas": 567470.7300000001, "saidas": 329140.9, "final": 3396794.52}, {"mes": 6, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 1105557.87, "entradas": 275767, "saidas": 198180.07, "final": 1183144.8}, {"mes": 6, "loja": "OMODA BOA VISTA", "inicial": 132459.87, "entradas": 15660.07, "saidas": 0, "final": 148119.94}, {"mes": 7, "loja": "MITSUBISHI BOA VISTA", "inicial": 878356.45, "entradas": 235739.63, "saidas": 238380.77, "final": 879725.87}, {"mes": 7, "loja": "MITSUBISHI MANAUS", "inicial": 1392533.87, "entradas": 391033.92, "saidas": 302388.96, "final": 1479658.95}, {"mes": 7, "loja": "VOLVO MANAUS", "inicial": 770466.9185364102, "entradas": 125924.23, "saidas": 191622.9928453, "final": 717440.8110822899}, {"mes": 7, "loja": "VOLVO BELÉM", "inicial": 443281.35355815, "entradas": 94555.45, "saidas": 100785.63291668, "final": 500295.2878982702}, {"mes": 7, "loja": "TOCAUTO AUTO", "inicial": 1332437.24, "entradas": 333218.46, "saidas": 313365.74, "final": 1352289.96}, {"mes": 7, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3396794.52, "entradas": 528892.12, "saidas": 652120.91, "final": 3280543.54}, {"mes": 7, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 1183144.8, "entradas": 220223.82, "saidas": 145877.86, "final": 1298870.08}, {"mes": 7, "loja": "OMODA BOA VISTA", "inicial": 148119.94, "entradas": 0, "saidas": 1300, "final": 146819.94}, {"mes": 8, "loja": "MITSUBISHI BOA VISTA", "inicial": 879725.87, "entradas": 204823.29, "saidas": 195381.31, "final": 892205.82}, {"mes": 8, "loja": "MITSUBISHI MANAUS", "inicial": 1479658.95, "entradas": 192545.71, "saidas": 367452.79, "final": 1303087.96}, {"mes": 8, "loja": "VOLVO MANAUS", "inicial": 717440.8110822899, "entradas": 248745.84, "saidas": 114435.67280555, "final": 817153.8837203097}, {"mes": 8, "loja": "VOLVO BELÉM", "inicial": 500295.2878982702, "entradas": 62352.29, "saidas": 39456.71425001, "final": 502391.9756261799}, {"mes": 8, "loja": "TOCAUTO AUTO", "inicial": 1352289.96, "entradas": 292333.45, "saidas": 315781.29, "final": 1309418.83}, {"mes": 8, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": 3280543.54, "entradas": 478483.84, "saidas": 429326.86, "final": 3310469.17}, {"mes": 8, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": 1298870.08, "entradas": 98644.70000000001, "saidas": 91766.79000000001, "final": 1309889.37}, {"mes": 8, "loja": "OMODA BOA VISTA", "inicial": 146819.94, "entradas": 29450.79, "saidas": 0, "final": 176270}, {"mes": 9, "loja": "MITSUBISHI BOA VISTA", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 9, "loja": "MITSUBISHI MANAUS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 9, "loja": "VOLVO MANAUS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 9, "loja": "VOLVO BELÉM", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 9, "loja": "TOCAUTO AUTO", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 9, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 9, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 9, "loja": "OMODA BOA VISTA", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "MITSUBISHI BOA VISTA", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "MITSUBISHI MANAUS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "VOLVO MANAUS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "VOLVO BELÉM", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "TOCAUTO AUTO", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 10, "loja": "OMODA BOA VISTA", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "MITSUBISHI BOA VISTA", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "MITSUBISHI MANAUS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "VOLVO MANAUS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "VOLVO BELÉM", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "TOCAUTO AUTO", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "TOCAUTO CAMINHÕES BALSAS", "inicial": null, "entradas": null, "saidas": null, "final": null}, {"mes": 11, "loja": "OMODA BOA VISTA", "inicial": null, "entradas": null, "saidas": null, "final": null}], "qualidade": {"periodo": "Setembro 2026", "itens": [{"marca": "MITSUBISHI", "loja": "MITSUBISHI MANAUS", "programa": "Programa 3 Diamantes", "meta": null, "resultado": 1, "status": "3D certificada (3º trimestre)", "obs": "Setembro 100%"}, {"marca": "MITSUBISHI", "loja": "MITSUBISHI BOA VISTA", "programa": "Programa 3 Diamantes", "meta": null, "resultado": 1, "status": "3D certificada (3º trimestre)", "obs": "Setembro 100%"}, {"marca": "VW CAMINHÕES", "loja": "TOCAUTO CAMINHÕES IMPERATRIZ", "programa": "Volkscem", "meta": 0.75, "resultado": 1, "status": null, "obs": null}, {"marca": "VW CAMINHÕES", "loja": "TOCAUTO CAMINHÕES BALSAS", "programa": "Volkscem", "meta": 0.75, "resultado": 1, "status": null, "obs": null}, {"marca": "VW TOCAUTO AUTO", "loja": "TOCAUTO AUTO", "programa": "Pesquisa de qualidade da montadora (CEM)", "meta": null, "resultado": 1, "status": null, "obs": "Pesquisa CEM — 4,889, acima do Nacional, Regional e Satélite"}, {"marca": "VOLVO", "loja": "VOLVO MANAUS", "programa": "Deep Blue", "meta": null, "resultado": 1, "status": "Certificada", "obs": null}, {"marca": "VOLVO", "loja": "VOLVO BELÉM", "programa": "Soft Blue", "meta": null, "resultado": 1, "status": "Certificada", "obs": null}]}};
+const MES = D.meses, LOJAS = D.lojas, CONS = "CONSOLIDADO";
+const IND = Object.fromEntries(D.indicadores.map(i => [i.chave, i]));
+const nf0 = new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0});
+const nf1 = new Intl.NumberFormat("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+const pct = v => v == null || !isFinite(v) ? "—" : nf1.format(v*100) + "%";
+const brl = v => "R$ " + nf0.format(v);
+const brlK = v => Math.abs(v) >= 1e6 ? "R$ " + nf1.format(v/1e6) + " mi" : Math.abs(v) >= 1e3 ? "R$ " + nf0.format(v/1e3) + " mil" : brl(v);
+function fmt(ind, v, curto){
+  if (v == null) return "—";
+  if (ind.unidade === "R$") return curto ? brlK(v) : brl(v);
+  if (ind.unidade === "%") return nf1.format(v) + "%";
+  if (ind.unidade === "pts") return nf1.format(v);
+  return nf0.format(v);
+}
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const faixa = p => p == null || !isFinite(p) ? "none" : p >= D.faixaVerde ? "good" : p >= D.faixaAmarela ? "warn" : "bad";
+const pill = p => `<span class="pill ${faixa(p)}">${pct(p)}</span>`;
+const somaInd = i => i.consolidacao === "soma";
+
+// série mensal (12) de realizado e meta para a visão
+function serie(ind, visao){
+  return visao === CONS ? {real: ind.realCons, meta: ind.metaCons} : {real: ind.real[visao] || [], meta: ind.meta[visao] || []};
+}
+const ok = v => v != null;
+function ateMes(arr, m, agg){
+  const vs = arr.slice(0, m+1).filter(ok);
+  if (!vs.length) return null;
+  const s = vs.reduce((a,b)=>a+b,0);
+  return agg ? s : s / vs.length;
+}
+function mesAno(ind, visao, m){
+  const {real, meta} = serie(ind, visao);
+  const r = real[m] ?? null, mt = meta[m] || null;
+  const ant = m > 0 ? real[m-1] : null;
+  const agg = somaInd(ind);
+  const ra = ateMes(real, m, agg);
+  // meta acumulada só dos meses com realizado, como na planilha
+  let ma = null;
+  if (agg){ let s=0,c=0; for(let k=0;k<=m;k++) if(ok(real[k]) && meta[k]){ s+=meta[k]; c++; } ma = c ? s : null; }
+  else ma = ateMes(meta.map(x => x || null), m, false);
+  return {r, mt, p: r!=null && mt ? r/mt : null, varAnt: r!=null && ant ? r/ant - 1 : null,
+          ra, ma, pa: ra!=null && ma ? ra/ma : null};
+}
+
+// meses com dado
+const temDado = m => D.indicadores.some(i => ok(i.realCons[m]));
+let mes = (() => { for (let m=11;m>=0;m--) if (ok(IND.fat.realCons[m]) && IND.fat.realCons[m] > 0) return m; for (let m=11;m>=0;m--) if (temDado(m)) return m; return 0; })();
+let visao = CONS, evoInd = "fat";
+try { const s = JSON.parse(localStorage.getItem("onepage-pv") || "{}"); if (s.visao && (s.visao===CONS || LOJAS.includes(s.visao))) visao = s.visao; if (IND[s.evoInd]) evoInd = s.evoInd; } catch(e){}
+const salvar = () => { try { localStorage.setItem("onepage-pv", JSON.stringify({visao, evoInd})); } catch(e){} };
+
+// controles
+const elMeses = document.getElementById("meses");
+MES.forEach((nome, m) => {
+  const b = document.createElement("button");
+  b.textContent = nome; b.id = "mes-" + nome; b.disabled = !temDado(m);
+  b.onclick = () => { mes = m; render(); };
+  elMeses.appendChild(b);
+});
+const elVisao = document.getElementById("visao");
+elVisao.innerHTML = [CONS, ...LOJAS].map(l => `<option value="${esc(l)}">${l === CONS ? "Consolidado (" + LOJAS.length + " lojas)" : esc(l)}</option>`).join("");
+elVisao.onchange = () => { visao = elVisao.value; salvar(); render(); };
+const setVisao = l => { visao = l; salvar(); render(); };
+const evoTabs = document.getElementById("evoTabs");
+D.indicadores.forEach(i => {
+  const b = document.createElement("button"); b.textContent = i.rotulo; b.id = "evo-" + i.chave;
+  b.onclick = () => { evoInd = i.chave; salvar(); render(); };
+  evoTabs.appendChild(b);
+});
+
+function spark(arr, m){
+  const pts = arr.map((v,k)=>[k,v]).filter(([,v])=>ok(v));
+  if (pts.length < 2) return "";
+  const vs = pts.map(p=>p[1]), lo = Math.min(...vs), hi = Math.max(...vs), rg = hi-lo || 1;
+  const x = k => 2 + k*(156/11), y = v => 27 - (v-lo)/rg*23;
+  const d = pts.map(([k,v],i)=>(i?"L":"M")+x(k).toFixed(1)+" "+y(v).toFixed(1)).join("");
+  const cur = ok(arr[m]) ? `<circle cx="${x(m)}" cy="${y(arr[m])}" r="2.8" fill="var(--accent)"/>` : "";
+  return `<svg viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" opacity=".7"/>${cur}</svg>`;
+}
+
+function renderKpis(){
+  document.getElementById("kpis").innerHTML = D.indicadores.map(ind => {
+    const x = mesAno(ind, visao, mes), {real} = serie(ind, visao);
+    const delta = x.varAnt == null ? "" : `<span class="delta ${x.varAnt>=0?"up":"down"}">${x.varAnt>=0?"▲":"▼"} ${pct(Math.abs(x.varAnt))} vs ${MES[mes-1]}</span>`;
+    const acum = x.ra == null ? "" : `<span>${somaInd(ind)?"Ano":"Média ano"}: ${fmt(ind, x.ra, true)}${x.pa!=null?" ("+pct(x.pa)+")":""}</span>`;
+    return `<article class="kpi">
+      <div class="top"><span class="eyebrow">${esc(ind.rotulo)}</span>${x.p!=null?pill(x.p):""}</div>
+      <div class="val ${x.r==null?"empty":""}">${x.r==null?"Sem lançamento":fmt(ind, x.r, true)}</div>
+      <div class="sub">${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:"<span>Sem meta</span>"}${delta}${acum}</div>
+      ${spark(real, mes)}
+    </article>`;
+  }).join("");
+}
+
+function renderLojas(){
+  const inds = D.indicadores;
+  const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th><th class="n">% meta</th>`).join("")}</tr></thead>`;
+  const linha = (l, cls) => {
+    const cells = inds.map(i => { const x = mesAno(i, l, mes); return `<td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>`; }).join("");
+    return `<tr class="${cls}" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${cells}</tr>`;
+  };
+  const corpo = LOJAS.map(l => linha(l, "click" + (l===visao?" sel":""))).join("");
+  const pe = inds.map(i => { const x = mesAno(i, CONS, mes); return `<td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):""}</td>`; }).join("");
+  const t = document.getElementById("tblLojas");
+  t.innerHTML = head + `<tbody>${corpo}</tbody><tfoot><tr class="click${visao===CONS?" sel":""}" data-loja="${CONS}" tabindex="0"><td>Consolidado</td>${pe}</tr></tfoot>`;
+  t.querySelectorAll("tr[data-loja]").forEach(tr => {
+    const go = () => setVisao(tr.dataset.loja === visao ? CONS : tr.dataset.loja);
+    tr.onclick = go; tr.onkeydown = e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+
+function niceMax(v){ if (v<=0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); for (const k of [1,1.2,1.5,2,2.5,3,4,5,6,8,10]) if (k*p >= v) return k*p; return 10*p; }
+function renderEvo(){
+  const ind = IND[evoInd], {real, meta} = serie(ind, visao);
+  document.getElementById("evoTitulo").textContent = `Evolução mensal · ${ind.rotulo} · ${visao===CONS?"Consolidado":visao}`;
+  evoTabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.id === "evo-"+evoInd));
+  const vals = [...real, ...meta].filter(v => ok(v));
+  const el = document.getElementById("evo");
+  if (!vals.length){ el.innerHTML = `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`; return; }
+  const W=720,H=250,L=58,R=8,T=22,B=26, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
+  const y = v => T + (max - v)/(max - min)*(H-T-B), bw = (W-L-R)/12;
+  let s = "";
+  for (let k=0;k<=4;k++){ const v = min + (max-min)*k/4, yy = y(v);
+    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(ind, v, true)}</text>`; }
+  MES.forEach((nm, k) => {
+    const x0 = L + k*bw, cx = x0 + bw/2;
+    if (meta[k]) s += `<rect x="${x0+bw*.14}" y="${y(meta[k])}" width="${bw*.72}" height="${Math.max(0,y(min)-y(meta[k]))}" fill="var(--meta)" rx="2"><title>Meta ${nm}: ${fmt(ind, meta[k])}</title></rect>`;
+    if (ok(real[k])) { const top = y(Math.max(real[k],0)), h = Math.abs(y(real[k]) - y(0));
+      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--accent)" opacity="${k===mes?1:.75}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
+    if (k===mes && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
+    s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="11" fill="${k===mes?"var(--ink)":"var(--muted)"}" font-weight="${k===mes?700:400}">${nm}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meta e realizado por mês">${s}</svg>`;
+}
+
+function renderConcl(){
+  const c = [], nm = MES[mes];
+  const f = mesAno(IND.fat, visao, mes);
+  if (f.r != null) c.push(`Faturamento de ${nm}: <b>${brl(f.r)}</b>${f.p!=null?` — ${pct(f.p)} da meta`:""}${f.varAnt!=null?`, ${f.varAnt>=0?"+":""}${pct(f.varAnt)} vs mês anterior`:""}.`);
+  else c.push(`Faturamento de ${nm} ainda não lançado na aba FATURAMENTO.`);
+  if (f.ra != null) c.push(`Acumulado no ano: <b>${brl(f.ra)}</b>${f.pa!=null?` — ${pct(f.pa)} da meta acumulada`:""}.`);
+  const p = mesAno(IND.pass, visao, mes);
+  if (p.r != null) c.push(`Passagens: <b>${nf0.format(p.r)}</b> no mês${p.varAnt!=null?` (${p.varAnt>=0?"+":""}${pct(p.varAnt)} vs mês anterior)`:""}${p.p!=null?`, ${pct(p.p)} da meta`:""}.`);
+  const mg = mesAno(IND.margem, visao, mes), tk = mesAno(IND.ticket, visao, mes);
+  if (mg.r != null || tk.r != null) c.push(`Margem bruta ${fmt(IND.margem, mg.r)} · ticket médio ${fmt(IND.ticket, tk.r)}.`);
+  else c.push(`Margem e ticket médio sem lançamento em ${nm} (no mês do export vêm do Linx/NBS).`);
+  const q = ["nps","ffv","did"].filter(k => mesAno(IND[k], visao, mes).r != null);
+  if (!q.length) c.push("NPS, FFV e DID sem lançamento no mês; veja os programas da montadora na página 2.");
+  const comMeta = D.indicadores.map(i => mesAno(i, visao, mes)).filter(x => x.p != null);
+  c.push(`Metas atingidas no mês: <b>${comMeta.filter(x => x.p >= D.faixaVerde).length} de ${comMeta.length}</b> indicadores com meta.`);
+  if (visao === CONS){
+    const rk = LOJAS.map(l => [l, mesAno(IND.fat, l, mes).p]).filter(x => x[1] != null).sort((a,b)=>b[1]-a[1]);
+    if (rk.length > 1) c.push(`Melhor atingimento em faturamento: <b>${esc(rk[0][0])}</b> (${pct(rk[0][1])}); menor: <b>${esc(rk.at(-1)[0])}</b> (${pct(rk.at(-1)[1])}).`);
+  }
+  if (D.inicioPeriodo2 != null && mes >= D.inicioPeriodo2 && D.inicioPeriodo2 > 0){
+    const r = serie(IND.fat, visao).real, a = ateMes(r, D.inicioPeriodo2-1, false), vs = r.slice(D.inicioPeriodo2, mes+1).filter(ok);
+    if (a && vs.length){ const b = vs.reduce((x,y)=>x+y,0)/vs.length; c.push(`Faturamento médio: ${esc(D.periodo1)} ${brlK(a)} × ${esc(D.periodo2)} ${brlK(b)} (${b/a-1>=0?"+":""}${pct(b/a-1)}).`); }
+  }
+  document.getElementById("concl").innerHTML = c.map(x => `<li>${x}</li>`).join("");
+
+  const ac = [];
+  D.indicadores.forEach(i => Object.entries(i.comentarios).forEach(([l, t]) => { if (visao===CONS || l===visao || l==="GERAL") ac.push(`<div><b>${esc(i.rotulo)} · ${esc(l)}</b><br>${esc(t)}</div>`); }));
+  document.getElementById("acoes").innerHTML = ac.length ? ac.join("") : `<p class="muted">Nenhum comentário lançado. Escreva justificativas e planos de ação no quadro "Comentários e ações do mês" de cada aba da planilha.</p>`;
+}
+
+function renderOficina(){
+  const of = D.oficina.porLoja, mx = D.mesExport;
+  document.getElementById("ofNota").textContent = `Export Linx/NBS · ${mx!=null?MES[mx]+"/"+D.ano:"mês atual"}`;
+  const cols = [["passagens","Passagens",v=>nf0.format(v)],["mo","Mão de obra",brlK],["pctMo","% obj. MO",null],["pecas","Peças",brlK],["pctPecas","% obj. peças",null],["total","Total oficina",brlK],["projecao","Projeção fat.",brlK],["ticket","Ticket",brl],["margemPecas","Margem peças",pct],["pecasMo","Peças / MO",v=>nf1.format(v)+"×"]];
+  const cell = (r, [k,,f]) => { const v = r?.[k]; if (v == null) return `<td class="n muted">—</td>`; return `<td class="n">${f?f(v):pill(v)}</td>`; };
+  const mix = r => r && r.total ? `<div class="bar2" title="MO ${pct(r.mo/r.total)} · Peças ${pct(r.pecas/r.total)}"><span style="width:${r.mo/r.total*100}%"></span><span style="width:${r.pecas/r.total*100}%"></span></div>` : "";
+  const consKey = Object.keys(of).find(k => k.startsWith("CONSOLIDADO"));
+  document.getElementById("tblOficina").innerHTML =
+    `<thead><tr><th>Loja</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th>MO × peças</th></tr></thead><tbody>` +
+    LOJAS.map(l => `<tr class="${l===visao?"sel":""}"><td>${esc(l)}</td>${cols.map(c=>cell(of[l],c)).join("")}<td>${mix(of[l])}</td></tr>`).join("") +
+    `</tbody><tfoot><tr><td>Total ${LOJAS.length} lojas</td>${cols.map(c=>cell(of[consKey],c)).join("")}<td>${mix(of[consKey])}</td></tr></tfoot>`;
+  const sl = D.oficina.semLoja;
+  document.getElementById("ofAlerta").innerHTML = sl.length ? `<div class="alert">${sl.length} colaborador(es) do export sem loja: ${sl.map(esc).join(", ")}. Inclua no quadro de exceções da aba DE-PARA.</div>` : "";
+}
+
+function renderEstoque(){
+  // usa o mês selecionado; se não houver lançamento, o último mês com estoque até ele
+  let m = mes; while (m >= 0 && !D.estoque.some(e => e.mes === m)) m--;
+  const nota = document.getElementById("estNota"), t = document.getElementById("tblEstoque");
+  if (m < 0){ nota.textContent = ""; t.innerHTML = `<tbody><tr><td class="muted">Sem estoque lançado até ${MES[mes]}. Lance na aba compra de peças.</td></tr></tbody>`; return; }
+  nota.textContent = `${MES[m]}/${D.ano}${m!==mes?" (último lançado)":""} · aba compra de peças`;
+  const rows = LOJAS.map(l => [l, D.estoque.find(e => e.mes===m && e.loja===l)]);
+  const tot = {inicial:0,entradas:0,saidas:0,final:0};
+  rows.forEach(([,e]) => e && Object.keys(tot).forEach(k => tot[k] += e[k] || 0));
+  const varp = e => e && e.inicial ? e.final/e.inicial - 1 : null;
+  const vtd = v => v==null ? `<td class="n muted">—</td>` : `<td class="n delta ${v>0?"down":"up"}">${v>=0?"+":""}${pct(v)}</td>`;
+  const tds = e => e ? ["inicial","entradas","saidas","final"].map(k=>`<td class="n">${brlK(e[k])}</td>`).join("") + vtd(varp(e)) : `<td class="n muted" colspan="5">sem lançamento</td>`;
+  t.innerHTML = `<thead><tr><th>Loja</th><th class="n">Saldo inicial</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo final</th><th class="n">Var.</th></tr></thead><tbody>` +
+    rows.map(([l,e]) => `<tr class="${l===visao?"sel":""}"><td>${esc(l)}</td>${tds(e)}</tr>`).join("") + `</tbody><tfoot><tr><td>Total</td>${tds(tot)}</tr></tfoot>`;
+}
+
+function renderRanking(){
+  const lista = D.oficina.ranking.filter(r => visao===CONS || r.loja===visao).slice(0,10);
+  document.getElementById("rkNota").textContent = `por total oficina · export ${D.mesExport!=null?MES[D.mesExport]+"/"+D.ano:""}${visao!==CONS?" · "+visao:""}`;
+  document.getElementById("tblRanking").innerHTML = `<thead><tr><th>#</th><th>Consultor</th>${visao===CONS?"<th>Loja</th>":""}<th class="n">Pass.</th><th class="n">Total oficina</th><th class="n">Ticket</th></tr></thead><tbody>` +
+    (lista.length ? lista.map((r,i) => `<tr><td class="rank-n">${i+1}</td><td>${esc(r.nome)}</td>${visao===CONS?`<td class="muted">${esc(r.loja)}</td>`:""}<td class="n">${nf0.format(r.passagens||0)}</td><td class="n">${brlK(r.total)}</td><td class="n">${r.ticket!=null?brl(r.ticket):"—"}</td></tr>`).join("")
+      : `<tr><td colspan="6" class="muted">Nenhum consultor desta loja no export.</td></tr>`) + `</tbody>`;
+}
+
+function renderQualidade(){
+  const q = D.qualidade.itens.filter(i => visao===CONS || i.loja===visao);
+  document.getElementById("qmNota").textContent = D.qualidade.periodo ? `Referência: ${D.qualidade.periodo}` : "";
+  document.getElementById("tblQualidade").innerHTML = `<thead><tr><th>Marca</th><th>Loja</th><th>Programa</th><th class="n">Meta</th><th class="n">Resultado</th><th>Status / observação</th></tr></thead><tbody>` +
+    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.meta!=null?pct(i.meta):"—"}</td><td class="n">${i.resultado!=null?`<span class="pill ${i.meta!=null?(i.resultado>=i.meta?"good":"bad"):"good"}">${pct(i.resultado)}</span>`:"—"}</td><td style="white-space:normal;min-width:220px">${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
+      : `<tr><td colspan="6" class="muted">Sem programa da montadora lançado para esta loja.</td></tr>`) + `</tbody>`;
+}
+
+function render(){
+  document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
+  document.getElementById("tituloMes").textContent = `${MES[mes].toUpperCase()}/${D.ano}` + (visao!==CONS ? " · " + visao : "");
+  elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", k===mes));
+  elVisao.value = visao;
+  renderKpis(); renderLojas(); renderEvo(); renderConcl(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
+  document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
+    `. Faturamento e passagens: soma do ano até o mês; demais: média dos meses lançados. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
+}
+render();
+</script>

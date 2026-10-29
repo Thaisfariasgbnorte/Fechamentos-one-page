@@ -1,0 +1,378 @@
+<title>One Page Pós-Vendas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: painel de oficina — faixa de controles, linha de indicadores, depois duas "páginas" (1/2 resultados, 2/2 oficina) em grade */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --surface-2:#e9edf1; --line:#d5dce3;
+  --ink:#14212c; --muted:#5b6a78; --accent:#0f5c8c; --accent-soft:#cfe2ef; --meta:#b9c4ce;
+  --good:#1d7a4a; --good-bg:#dcf0e4; --warn:#9a6400; --warn-bg:#fbecc9; --bad:#b3261e; --bad-bg:#f8dcd9;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --line:#2c3a47;
+  --ink:#e5ecf2; --muted:#93a3b2; --accent:#5aa9dc; --accent-soft:#1d3a50; --meta:#3c4c5b;
+  --good:#5cc98d; --good-bg:#173a28; --warn:#e6b450; --warn-bg:#3d3017; --bad:#f08079; --bad-bg:#46201e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --line:#2c3a47;
+  --ink:#e5ecf2; --muted:#93a3b2; --accent:#5aa9dc; --accent-soft:#1d3a50; --meta:#3c4c5b;
+  --good:#5cc98d; --good-bg:#173a28; --warn:#e6b450; --warn-bg:#3d3017; --bad:#f08079; --bad-bg:#46201e; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+.num,td.n,th.n{font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* cabeçalho */
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:14px}
+header h1{font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.01em}
+header h1 span{color:var(--accent)}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.months{display:flex;flex-wrap:wrap;gap:2px;background:var(--surface-2);padding:3px;border-radius:6px}
+.months button{font:600 12px var(--f-body);border:0;background:transparent;color:var(--ink);padding:5px 8px;border-radius:4px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em}
+.months button:disabled{color:var(--muted);opacity:.45;cursor:default}
+.months button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+select{font:500 13px var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;max-width:100%}
+button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* indicadores */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.kpi .val{font-family:var(--f-display);font-size:24px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .val.empty{font-size:14px;font-weight:500;color:var(--muted);font-family:var(--f-body)}
+.kpi .sub{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted)}
+.kpi svg{width:100%;height:30px;display:block}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.none{background:var(--surface-2);color:var(--muted)}
+.delta.up{color:var(--good)} .delta.down{color:var(--bad)}
+
+/* páginas */
+.page-tag{display:flex;align-items:center;gap:10px}
+.page-tag h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+.page-tag::after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:16px;font-weight:700}
+.panel .hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
+.panel .note{font-size:12px;color:var(--muted)}
+.span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}.span-6{grid-column:span 6}
+@media (max-width:1240px){.span-6{grid-column:span 12}}
+@media (max-width:960px){.span-7,.span-5{grid-column:span 12}}
+
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:right}
+tbody tr.sel td{background:var(--accent-soft)}
+tbody tr.click{cursor:pointer} tbody tr.click:hover td{background:var(--surface-2)}
+tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+.muted{color:var(--muted)}
+
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tabs button{font:600 12px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+ul.concl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:75ch}
+.acoes{display:flex;flex-direction:column;gap:8px}
+.acoes div{border-left:3px solid var(--line);padding-left:10px}
+.acoes b{font-size:12px}
+
+.bar2{display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--surface-2);min-width:70px}
+.bar2 span:first-child{background:var(--accent)} .bar2 span:last-child{background:var(--meta)}
+.alert{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 10px;font-size:12px;font-weight:600}
+.rank-n{font-family:var(--f-display);font-weight:800;color:var(--accent)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow" id="empresa"></div>
+      <h1>One Page <span>Pós-Vendas</span> · <span id="tituloMes" class="num"></span></h1>
+    </div>
+    <div class="controls">
+      <div class="ctl"><label class="eyebrow">Mês de fechamento</label><div class="months" id="meses" role="group" aria-label="Mês"></div></div>
+      <div class="ctl"><label class="eyebrow" for="visao">Visão</label><select id="visao"></select></div>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Indicadores do mês"></section>
+
+  <div class="page-tag"><h2>1/2 · Resultados</h2></div>
+  <div class="grid">
+    <section class="panel span-12">
+      <div class="hd"><h3>Desempenho por loja</h3><span class="note">Clique numa loja para mudar a visão · cor = faixa de atingimento da meta</span></div>
+      <div class="tbl"><table id="tblLojas"></table></div>
+    </section>
+    <section class="panel span-7">
+      <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--accent)"></i>Realizado</span></div></div>
+      <div class="tabs" id="evoTabs" role="group" aria-label="Indicador do gráfico"></div>
+      <div class="chart" id="evo"></div>
+    </section>
+    <section class="panel span-5">
+      <h3>Principais conclusões</h3>
+      <ul class="concl" id="concl"></ul>
+      <h3>Ações e comentários do mês</h3>
+      <div class="acoes" id="acoes"></div>
+    </section>
+  </div>
+
+  <div class="page-tag"><h2>2/2 · Oficina, estoque e qualidade</h2></div>
+  <div class="grid">
+    <section class="panel span-12">
+      <div class="hd"><h3>Mão de obra × peças por loja</h3><span class="note" id="ofNota"></span></div>
+      <div class="tbl"><table id="tblOficina"></table></div>
+      <div id="ofAlerta"></div>
+    </section>
+    <section class="panel span-6">
+      <div class="hd"><h3>Estoque de peças</h3><span class="note" id="estNota"></span></div>
+      <div class="tbl"><table id="tblEstoque"></table></div>
+    </section>
+    <section class="panel span-6">
+      <div class="hd"><h3>Ranking de consultores · top 10</h3><span class="note" id="rkNota"></span></div>
+      <div class="tbl"><table id="tblRanking"></table></div>
+    </section>
+    <section class="panel span-12">
+      <div class="hd"><h3>Qualidade montadora</h3><span class="note" id="qmNota"></span></div>
+      <div class="tbl"><table id="tblQualidade"></table></div>
+    </section>
+  </div>
+  <footer id="rodape"></footer>
+</div>
+
+<script>
+const D = /*__DADOS__*/null;
+const MES = D.meses, LOJAS = D.lojas, CONS = "CONSOLIDADO";
+const IND = Object.fromEntries(D.indicadores.map(i => [i.chave, i]));
+const nf0 = new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0});
+const nf1 = new Intl.NumberFormat("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+const pct = v => v == null || !isFinite(v) ? "—" : nf1.format(v*100) + "%";
+const brl = v => "R$ " + nf0.format(v);
+const brlK = v => Math.abs(v) >= 1e6 ? "R$ " + nf1.format(v/1e6) + " mi" : Math.abs(v) >= 1e3 ? "R$ " + nf0.format(v/1e3) + " mil" : brl(v);
+function fmt(ind, v, curto){
+  if (v == null) return "—";
+  if (ind.unidade === "R$") return curto ? brlK(v) : brl(v);
+  if (ind.unidade === "%") return nf1.format(v) + "%";
+  if (ind.unidade === "pts") return nf1.format(v);
+  return nf0.format(v);
+}
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const faixa = p => p == null || !isFinite(p) ? "none" : p >= D.faixaVerde ? "good" : p >= D.faixaAmarela ? "warn" : "bad";
+const pill = p => `<span class="pill ${faixa(p)}">${pct(p)}</span>`;
+const somaInd = i => i.consolidacao === "soma";
+
+// série mensal (12) de realizado e meta para a visão
+function serie(ind, visao){
+  return visao === CONS ? {real: ind.realCons, meta: ind.metaCons} : {real: ind.real[visao] || [], meta: ind.meta[visao] || []};
+}
+const ok = v => v != null;
+function ateMes(arr, m, agg){
+  const vs = arr.slice(0, m+1).filter(ok);
+  if (!vs.length) return null;
+  const s = vs.reduce((a,b)=>a+b,0);
+  return agg ? s : s / vs.length;
+}
+function mesAno(ind, visao, m){
+  const {real, meta} = serie(ind, visao);
+  const r = real[m] ?? null, mt = meta[m] || null;
+  const ant = m > 0 ? real[m-1] : null;
+  const agg = somaInd(ind);
+  const ra = ateMes(real, m, agg);
+  // meta acumulada só dos meses com realizado, como na planilha
+  let ma = null;
+  if (agg){ let s=0,c=0; for(let k=0;k<=m;k++) if(ok(real[k]) && meta[k]){ s+=meta[k]; c++; } ma = c ? s : null; }
+  else ma = ateMes(meta.map(x => x || null), m, false);
+  return {r, mt, p: r!=null && mt ? r/mt : null, varAnt: r!=null && ant ? r/ant - 1 : null,
+          ra, ma, pa: ra!=null && ma ? ra/ma : null};
+}
+
+// meses com dado
+const temDado = m => D.indicadores.some(i => ok(i.realCons[m]));
+let mes = (() => { for (let m=11;m>=0;m--) if (ok(IND.fat.realCons[m]) && IND.fat.realCons[m] > 0) return m; for (let m=11;m>=0;m--) if (temDado(m)) return m; return 0; })();
+let visao = CONS, evoInd = "fat";
+try { const s = JSON.parse(localStorage.getItem("onepage-pv") || "{}"); if (s.visao && (s.visao===CONS || LOJAS.includes(s.visao))) visao = s.visao; if (IND[s.evoInd]) evoInd = s.evoInd; } catch(e){}
+const salvar = () => { try { localStorage.setItem("onepage-pv", JSON.stringify({visao, evoInd})); } catch(e){} };
+
+// controles
+const elMeses = document.getElementById("meses");
+MES.forEach((nome, m) => {
+  const b = document.createElement("button");
+  b.textContent = nome; b.id = "mes-" + nome; b.disabled = !temDado(m);
+  b.onclick = () => { mes = m; render(); };
+  elMeses.appendChild(b);
+});
+const elVisao = document.getElementById("visao");
+elVisao.innerHTML = [CONS, ...LOJAS].map(l => `<option value="${esc(l)}">${l === CONS ? "Consolidado (" + LOJAS.length + " lojas)" : esc(l)}</option>`).join("");
+elVisao.onchange = () => { visao = elVisao.value; salvar(); render(); };
+const setVisao = l => { visao = l; salvar(); render(); };
+const evoTabs = document.getElementById("evoTabs");
+D.indicadores.forEach(i => {
+  const b = document.createElement("button"); b.textContent = i.rotulo; b.id = "evo-" + i.chave;
+  b.onclick = () => { evoInd = i.chave; salvar(); render(); };
+  evoTabs.appendChild(b);
+});
+
+function spark(arr, m){
+  const pts = arr.map((v,k)=>[k,v]).filter(([,v])=>ok(v));
+  if (pts.length < 2) return "";
+  const vs = pts.map(p=>p[1]), lo = Math.min(...vs), hi = Math.max(...vs), rg = hi-lo || 1;
+  const x = k => 2 + k*(156/11), y = v => 27 - (v-lo)/rg*23;
+  const d = pts.map(([k,v],i)=>(i?"L":"M")+x(k).toFixed(1)+" "+y(v).toFixed(1)).join("");
+  const cur = ok(arr[m]) ? `<circle cx="${x(m)}" cy="${y(arr[m])}" r="2.8" fill="var(--accent)"/>` : "";
+  return `<svg viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" opacity=".7"/>${cur}</svg>`;
+}
+
+function renderKpis(){
+  document.getElementById("kpis").innerHTML = D.indicadores.map(ind => {
+    const x = mesAno(ind, visao, mes), {real} = serie(ind, visao);
+    const delta = x.varAnt == null ? "" : `<span class="delta ${x.varAnt>=0?"up":"down"}">${x.varAnt>=0?"▲":"▼"} ${pct(Math.abs(x.varAnt))} vs ${MES[mes-1]}</span>`;
+    const acum = x.ra == null ? "" : `<span>${somaInd(ind)?"Ano":"Média ano"}: ${fmt(ind, x.ra, true)}${x.pa!=null?" ("+pct(x.pa)+")":""}</span>`;
+    return `<article class="kpi">
+      <div class="top"><span class="eyebrow">${esc(ind.rotulo)}</span>${x.p!=null?pill(x.p):""}</div>
+      <div class="val ${x.r==null?"empty":""}">${x.r==null?"Sem lançamento":fmt(ind, x.r, true)}</div>
+      <div class="sub">${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:"<span>Sem meta</span>"}${delta}${acum}</div>
+      ${spark(real, mes)}
+    </article>`;
+  }).join("");
+}
+
+function renderLojas(){
+  const inds = D.indicadores;
+  const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th><th class="n">% meta</th>`).join("")}</tr></thead>`;
+  const linha = (l, cls) => {
+    const cells = inds.map(i => { const x = mesAno(i, l, mes); return `<td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>`; }).join("");
+    return `<tr class="${cls}" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${cells}</tr>`;
+  };
+  const corpo = LOJAS.map(l => linha(l, "click" + (l===visao?" sel":""))).join("");
+  const pe = inds.map(i => { const x = mesAno(i, CONS, mes); return `<td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):""}</td>`; }).join("");
+  const t = document.getElementById("tblLojas");
+  t.innerHTML = head + `<tbody>${corpo}</tbody><tfoot><tr class="click${visao===CONS?" sel":""}" data-loja="${CONS}" tabindex="0"><td>Consolidado</td>${pe}</tr></tfoot>`;
+  t.querySelectorAll("tr[data-loja]").forEach(tr => {
+    const go = () => setVisao(tr.dataset.loja === visao ? CONS : tr.dataset.loja);
+    tr.onclick = go; tr.onkeydown = e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+
+function niceMax(v){ if (v<=0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); for (const k of [1,1.2,1.5,2,2.5,3,4,5,6,8,10]) if (k*p >= v) return k*p; return 10*p; }
+function renderEvo(){
+  const ind = IND[evoInd], {real, meta} = serie(ind, visao);
+  document.getElementById("evoTitulo").textContent = `Evolução mensal · ${ind.rotulo} · ${visao===CONS?"Consolidado":visao}`;
+  evoTabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.id === "evo-"+evoInd));
+  const vals = [...real, ...meta].filter(v => ok(v));
+  const el = document.getElementById("evo");
+  if (!vals.length){ el.innerHTML = `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`; return; }
+  const W=720,H=250,L=58,R=8,T=22,B=26, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
+  const y = v => T + (max - v)/(max - min)*(H-T-B), bw = (W-L-R)/12;
+  let s = "";
+  for (let k=0;k<=4;k++){ const v = min + (max-min)*k/4, yy = y(v);
+    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(ind, v, true)}</text>`; }
+  MES.forEach((nm, k) => {
+    const x0 = L + k*bw, cx = x0 + bw/2;
+    if (meta[k]) s += `<rect x="${x0+bw*.14}" y="${y(meta[k])}" width="${bw*.72}" height="${Math.max(0,y(min)-y(meta[k]))}" fill="var(--meta)" rx="2"><title>Meta ${nm}: ${fmt(ind, meta[k])}</title></rect>`;
+    if (ok(real[k])) { const top = y(Math.max(real[k],0)), h = Math.abs(y(real[k]) - y(0));
+      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--accent)" opacity="${k===mes?1:.75}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
+    if (k===mes && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
+    s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="11" fill="${k===mes?"var(--ink)":"var(--muted)"}" font-weight="${k===mes?700:400}">${nm}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meta e realizado por mês">${s}</svg>`;
+}
+
+function renderConcl(){
+  const c = [], nm = MES[mes];
+  const f = mesAno(IND.fat, visao, mes);
+  if (f.r != null) c.push(`Faturamento de ${nm}: <b>${brl(f.r)}</b>${f.p!=null?` — ${pct(f.p)} da meta`:""}${f.varAnt!=null?`, ${f.varAnt>=0?"+":""}${pct(f.varAnt)} vs mês anterior`:""}.`);
+  else c.push(`Faturamento de ${nm} ainda não lançado na aba FATURAMENTO.`);
+  if (f.ra != null) c.push(`Acumulado no ano: <b>${brl(f.ra)}</b>${f.pa!=null?` — ${pct(f.pa)} da meta acumulada`:""}.`);
+  const p = mesAno(IND.pass, visao, mes);
+  if (p.r != null) c.push(`Passagens: <b>${nf0.format(p.r)}</b> no mês${p.varAnt!=null?` (${p.varAnt>=0?"+":""}${pct(p.varAnt)} vs mês anterior)`:""}${p.p!=null?`, ${pct(p.p)} da meta`:""}.`);
+  const mg = mesAno(IND.margem, visao, mes), tk = mesAno(IND.ticket, visao, mes);
+  if (mg.r != null || tk.r != null) c.push(`Margem bruta ${fmt(IND.margem, mg.r)} · ticket médio ${fmt(IND.ticket, tk.r)}.`);
+  else c.push(`Margem e ticket médio sem lançamento em ${nm} (no mês do export vêm do Linx/NBS).`);
+  const q = ["nps","ffv","did"].filter(k => mesAno(IND[k], visao, mes).r != null);
+  if (!q.length) c.push("NPS, FFV e DID sem lançamento no mês; veja os programas da montadora na página 2.");
+  const comMeta = D.indicadores.map(i => mesAno(i, visao, mes)).filter(x => x.p != null);
+  c.push(`Metas atingidas no mês: <b>${comMeta.filter(x => x.p >= D.faixaVerde).length} de ${comMeta.length}</b> indicadores com meta.`);
+  if (visao === CONS){
+    const rk = LOJAS.map(l => [l, mesAno(IND.fat, l, mes).p]).filter(x => x[1] != null).sort((a,b)=>b[1]-a[1]);
+    if (rk.length > 1) c.push(`Melhor atingimento em faturamento: <b>${esc(rk[0][0])}</b> (${pct(rk[0][1])}); menor: <b>${esc(rk.at(-1)[0])}</b> (${pct(rk.at(-1)[1])}).`);
+  }
+  if (D.inicioPeriodo2 != null && mes >= D.inicioPeriodo2 && D.inicioPeriodo2 > 0){
+    const r = serie(IND.fat, visao).real, a = ateMes(r, D.inicioPeriodo2-1, false), vs = r.slice(D.inicioPeriodo2, mes+1).filter(ok);
+    if (a && vs.length){ const b = vs.reduce((x,y)=>x+y,0)/vs.length; c.push(`Faturamento médio: ${esc(D.periodo1)} ${brlK(a)} × ${esc(D.periodo2)} ${brlK(b)} (${b/a-1>=0?"+":""}${pct(b/a-1)}).`); }
+  }
+  document.getElementById("concl").innerHTML = c.map(x => `<li>${x}</li>`).join("");
+
+  const ac = [];
+  D.indicadores.forEach(i => Object.entries(i.comentarios).forEach(([l, t]) => { if (visao===CONS || l===visao || l==="GERAL") ac.push(`<div><b>${esc(i.rotulo)} · ${esc(l)}</b><br>${esc(t)}</div>`); }));
+  document.getElementById("acoes").innerHTML = ac.length ? ac.join("") : `<p class="muted">Nenhum comentário lançado. Escreva justificativas e planos de ação no quadro "Comentários e ações do mês" de cada aba da planilha.</p>`;
+}
+
+function renderOficina(){
+  const of = D.oficina.porLoja, mx = D.mesExport;
+  document.getElementById("ofNota").textContent = `Export Linx/NBS · ${mx!=null?MES[mx]+"/"+D.ano:"mês atual"}`;
+  const cols = [["passagens","Passagens",v=>nf0.format(v)],["mo","Mão de obra",brlK],["pctMo","% obj. MO",null],["pecas","Peças",brlK],["pctPecas","% obj. peças",null],["total","Total oficina",brlK],["projecao","Projeção fat.",brlK],["ticket","Ticket",brl],["margemPecas","Margem peças",pct],["pecasMo","Peças / MO",v=>nf1.format(v)+"×"]];
+  const cell = (r, [k,,f]) => { const v = r?.[k]; if (v == null) return `<td class="n muted">—</td>`; return `<td class="n">${f?f(v):pill(v)}</td>`; };
+  const mix = r => r && r.total ? `<div class="bar2" title="MO ${pct(r.mo/r.total)} · Peças ${pct(r.pecas/r.total)}"><span style="width:${r.mo/r.total*100}%"></span><span style="width:${r.pecas/r.total*100}%"></span></div>` : "";
+  const consKey = Object.keys(of).find(k => k.startsWith("CONSOLIDADO"));
+  document.getElementById("tblOficina").innerHTML =
+    `<thead><tr><th>Loja</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th>MO × peças</th></tr></thead><tbody>` +
+    LOJAS.map(l => `<tr class="${l===visao?"sel":""}"><td>${esc(l)}</td>${cols.map(c=>cell(of[l],c)).join("")}<td>${mix(of[l])}</td></tr>`).join("") +
+    `</tbody><tfoot><tr><td>Total ${LOJAS.length} lojas</td>${cols.map(c=>cell(of[consKey],c)).join("")}<td>${mix(of[consKey])}</td></tr></tfoot>`;
+  const sl = D.oficina.semLoja;
+  document.getElementById("ofAlerta").innerHTML = sl.length ? `<div class="alert">${sl.length} colaborador(es) do export sem loja: ${sl.map(esc).join(", ")}. Inclua no quadro de exceções da aba DE-PARA.</div>` : "";
+}
+
+function renderEstoque(){
+  // usa o mês selecionado; se não houver lançamento, o último mês com estoque até ele
+  let m = mes; while (m >= 0 && !D.estoque.some(e => e.mes === m)) m--;
+  const nota = document.getElementById("estNota"), t = document.getElementById("tblEstoque");
+  if (m < 0){ nota.textContent = ""; t.innerHTML = `<tbody><tr><td class="muted">Sem estoque lançado até ${MES[mes]}. Lance na aba compra de peças.</td></tr></tbody>`; return; }
+  nota.textContent = `${MES[m]}/${D.ano}${m!==mes?" (último lançado)":""} · aba compra de peças`;
+  const rows = LOJAS.map(l => [l, D.estoque.find(e => e.mes===m && e.loja===l)]);
+  const tot = {inicial:0,entradas:0,saidas:0,final:0};
+  rows.forEach(([,e]) => e && Object.keys(tot).forEach(k => tot[k] += e[k] || 0));
+  const varp = e => e && e.inicial ? e.final/e.inicial - 1 : null;
+  const vtd = v => v==null ? `<td class="n muted">—</td>` : `<td class="n delta ${v>0?"down":"up"}">${v>=0?"+":""}${pct(v)}</td>`;
+  const tds = e => e ? ["inicial","entradas","saidas","final"].map(k=>`<td class="n">${brlK(e[k])}</td>`).join("") + vtd(varp(e)) : `<td class="n muted" colspan="5">sem lançamento</td>`;
+  t.innerHTML = `<thead><tr><th>Loja</th><th class="n">Saldo inicial</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo final</th><th class="n">Var.</th></tr></thead><tbody>` +
+    rows.map(([l,e]) => `<tr class="${l===visao?"sel":""}"><td>${esc(l)}</td>${tds(e)}</tr>`).join("") + `</tbody><tfoot><tr><td>Total</td>${tds(tot)}</tr></tfoot>`;
+}
+
+function renderRanking(){
+  const lista = D.oficina.ranking.filter(r => visao===CONS || r.loja===visao).slice(0,10);
+  document.getElementById("rkNota").textContent = `por total oficina · export ${D.mesExport!=null?MES[D.mesExport]+"/"+D.ano:""}${visao!==CONS?" · "+visao:""}`;
+  document.getElementById("tblRanking").innerHTML = `<thead><tr><th>#</th><th>Consultor</th>${visao===CONS?"<th>Loja</th>":""}<th class="n">Pass.</th><th class="n">Total oficina</th><th class="n">Ticket</th></tr></thead><tbody>` +
+    (lista.length ? lista.map((r,i) => `<tr><td class="rank-n">${i+1}</td><td>${esc(r.nome)}</td>${visao===CONS?`<td class="muted">${esc(r.loja)}</td>`:""}<td class="n">${nf0.format(r.passagens||0)}</td><td class="n">${brlK(r.total)}</td><td class="n">${r.ticket!=null?brl(r.ticket):"—"}</td></tr>`).join("")
+      : `<tr><td colspan="6" class="muted">Nenhum consultor desta loja no export.</td></tr>`) + `</tbody>`;
+}
+
+function renderQualidade(){
+  const q = D.qualidade.itens.filter(i => visao===CONS || i.loja===visao);
+  document.getElementById("qmNota").textContent = D.qualidade.periodo ? `Referência: ${D.qualidade.periodo}` : "";
+  document.getElementById("tblQualidade").innerHTML = `<thead><tr><th>Marca</th><th>Loja</th><th>Programa</th><th class="n">Meta</th><th class="n">Resultado</th><th>Status / observação</th></tr></thead><tbody>` +
+    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.meta!=null?pct(i.meta):"—"}</td><td class="n">${i.resultado!=null?`<span class="pill ${i.meta!=null?(i.resultado>=i.meta?"good":"bad"):"good"}">${pct(i.resultado)}</span>`:"—"}</td><td style="white-space:normal;min-width:220px">${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
+      : `<tr><td colspan="6" class="muted">Sem programa da montadora lançado para esta loja.</td></tr>`) + `</tbody>`;
+}
+
+function render(){
+  document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
+  document.getElementById("tituloMes").textContent = `${MES[mes].toUpperCase()}/${D.ano}` + (visao!==CONS ? " · " + visao : "");
+  elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", k===mes));
+  elVisao.value = visao;
+  renderKpis(); renderLojas(); renderEvo(); renderConcl(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
+  document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
+    `. Faturamento e passagens: soma do ano até o mês; demais: média dos meses lançados. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
+}
+render();
+</script>
