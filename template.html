@@ -329,8 +329,10 @@ function renderKpis(){
 
 function renderLojas(){
   const inds = D.indicadores;
-  const head = `<thead><tr><th>Loja</th>${inds.map(i=>`<th class="n">${esc(i.rotulo)}</th>${temMeta(i)?'<th class="n">Meta</th><th class="n">% meta</th>':""}`).join("")}</tr></thead>`;
-  const celulas = l => inds.map(i => { const x = agrega(i, l, sel); return `<td class="n">${fmt(i, x.r, true)}</td>` + (temMeta(i) ? `<td class="n muted">${fmt(i, x.mt, true)}</td><td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>` : ""); }).join("");
+  const head = `<thead><tr><th>Loja</th>${inds.map(i=>temMeta(i)?`<th class="n">Meta ${esc(i.rotulo.toLowerCase())}</th><th class="n">${esc(i.rotulo)}</th><th class="n">% meta</th>`:`<th class="n">${esc(i.rotulo)}</th>`).join("")}</tr></thead>`;
+  const celulas = l => inds.map(i => { const x = agrega(i, l, sel); // meta antes do realizado
+    if (!temMeta(i)) return `<td class="n">${fmt(i, x.r, true)}</td>`;
+    return `<td class="n muted">${fmt(i, x.mt, true)}</td><td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>`; }).join("");
   const corpo = lojasVis().map(l => `<tr class="click" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${celulas(l)}</tr>`).join("");
   const t = document.getElementById("tblLojas");
   t.innerHTML = head + `<tbody>${corpo}</tbody>` + (visao===CONS ? `<tfoot><tr><td>Consolidado</td>${celulas(CONS)}</tr></tfoot>` : "");
