@@ -147,9 +147,10 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
     <details>
       <summary>Como ler os indicadores e de onde vêm os números</summary>
       <ul>
-        <li><b>Faturamento</b>: notas fiscais de F&amp;I contra as financeiras (retorno, seguro, bônus, blindagem, PPS, campanha) — aba Controle do Controle de Solicitações de NF, pelo mês da solicitação, como na aba Resumo. Passe o mouse para ver por tipo. Mitsubishi Roraima entra em Mitsubishi Boa Vista.</li>
+        <li><b>Faturamento</b>: coluna “Volume Financ. Interno (R$)” da aba RELATÓRIO do Indicador Diário.</li>
         <li><b>% aprovação</b>: nenhuma das planilhas traz fichas enviadas e aprovadas pelos bancos, então a coluna fica vazia até esse dado existir.</li>
-        <li><b>Penetration</b>: vendas com financiamento interno ÷ vendas totais da loja (LINX REL VENDAS + NBS REL VENDAS, loja = coluna “estoque tipo”).</li>
+        <li><b>Penetration</b>: coluna “Positivação F&amp;I (%)” da aba RELATÓRIO do Indicador Diário (financiamentos internos ÷ vendas totais).</li>
+        <li>A aba RELATÓRIO mostra um mês por vez (hoje, outubro). Nos outros meses a página usa a mesma conta da aba aplicada às bases LINX REL VENDAS e NBS REL VENDAS (loja = coluna “estoque tipo”); no mês da aba, os números são idênticos.</li>
         <li><b>Principal banco</b>: banco com mais financiamentos internos no mês.</li>
         <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja (aba Metas do Indicador de Metas, que só tem out, nov e dez). Em novembro o realizado é o da aba Painel, parcial até a data de corte, e a cor segue a projeção de fim de mês (como o Status do Painel). Nomes da aba Metas: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
         <li><b>Retorno médio</b>: retorno F&amp;I ÷ financiamentos internos (o “unit” do resumo do Indicador Diário). Retorno = LINX RES VEIC VEND FI + NBS REL VENDAS.</li>
@@ -178,7 +179,6 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 
 function linha(loja, mes){
   const v = (D.porMes[mes]||{})[loja];
-  const f = (D.faturamento[mes]||{})[loja];
   const parcial = D.parcial && D.parcial.mes===mes ? D.parcial.lojas[loja] : null;
   const meta = parcial ? parcial.meta : (D.metas[loja]||{})[mes];
   const retorno = parcial ? parcial.realizado : (v ? v.retorno : null);
@@ -186,27 +186,23 @@ function linha(loja, mes){
   const top = bancos[0];
   return {
     loja, nome: nomeLoja(loja),
-    faturamento: f ? f.total : null, fatTipos: f ? f.tipos : null, fatPend: f ? f.pendente : 0,
+    faturamento: v ? v.volume : null,
     aprovacao: null,
     vendas: v ? v.vendas : null, financiadas: v ? v.financiadas : null,
-    penetration: v ? div(v.financiadas, v.vendas) : null,
+    penetration: v ? (v.positivacao ?? div(v.financiadas, v.vendas)) : null,
     banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
     retorno, meta: meta ?? null, atingimento: div(retorno, meta),
     projecao: parcial ? parcial.pctProjecao : null,
     retornoMedio: v ? div(v.retorno, v.financiadas) : null,
-    temDado: !!(v || f || parcial),
+    temDado: !!(v || parcial),
   };
 }
 
 const COLS = [
   {k:"nome", t:"Loja", txt:true},
-  {k:"faturamento", t:"Faturamento", f:r => {
-    if (r.faturamento==null) return DASH;
-    const tip = Object.entries(r.fatTipos).map(([k,v]) => `${k}: ${brl.format(v)}`).join("\n");
-    return `<span title="${esc(tip)}"><b>${brl.format(r.faturamento)}</b></span>` + (r.fatPend ? `<small>${brl0.format(r.fatPend)} sem NF</small>` : "");
-  }},
+  {k:"faturamento", t:"Faturamento", tip:"Volume Financ. Interno (R$) — aba RELATÓRIO", f:r => r.faturamento==null ? DASH : `<b>${brl.format(r.faturamento)}</b>`},
   {k:"aprovacao", t:"% aprovação", f:() => '<span class="na">sem dado</span>'},
-  {k:"penetration", t:"Penetration", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
+  {k:"penetration", t:"Penetration", tip:"Positivação F&I (%) — aba RELATÓRIO", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
   {k:"banco", t:"Principal banco", txt:true, f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.financiadas} contratos</small>` : DASH},
   {k:"atingimento", t:"% atingimento meta", center:true, f:r => {
     if (r.meta==null) return '<span class="na">sem meta</span>';
@@ -243,18 +239,15 @@ function render(){
   const avisos = [];
   if (D.parcial && D.parcial.mes===mes)
     avisos.push(`${NOMES_MES[mes]} é parcial: retorno lançado até ${D.parcial.corte} (${D.parcial.diasDecorridos} de ${D.parcial.diasUteis} dias úteis, aba Painel). As bases de vendas ainda não têm ${NOMES_MES[mes].toLowerCase()}, por isso penetration, banco e retorno médio ficam vazios.`);
-  if (!D.faturamento[mes]) avisos.push(`O controle de notas fiscais não tem solicitações em ${NOMES_MES[mes].toLowerCase()}.`);
   if (!Object.values(D.metas).some(m => m[mes]!=null) && !(D.parcial && D.parcial.mes===mes)) avisos.push(`A aba Metas só tem metas por loja para out, nov e dez.`);
   const semVenda = rows.filter(r => r.vendas===0 || (r.vendas==null && D.porMes[mes])).map(r => r.nome);
   if (semVenda.length) avisos.push(`Sem vendas no mês nas bases: ${semVenda.join(", ")}.`);
-  const semMes = Object.values(D.nfSemMes||{}).reduce((a,b) => a+b, 0);
-  if (semMes) avisos.push(`${brl.format(semMes)} em solicitações de NF sem data ficam fora de todos os meses.`);
   $("notice").innerHTML = avisos.map(a => `<div>${esc(a)}</div>`).join("");
 
   $("head").innerHTML = COLS.map(c => {
     const on = c.k===sortKey;
     const arr = on ? `<span class="arr">${sortDir<0 ? "&#8595;" : "&#8593;"}</span>` : "";
-    return `<th tabindex="0" data-k="${c.k}" class="${on?"sorted":""} ${c.center?"center":""}" aria-sort="${on?(sortDir<0?"descending":"ascending"):"none"}">${c.t}${arr}</th>`;
+    return `<th tabindex="0" data-k="${c.k}" class="${on?"sorted":""} ${c.center?"center":""}" aria-sort="${on?(sortDir<0?"descending":"ascending"):"none"}"${c.tip?` title="${c.tip}"`:""}>${c.t}${arr}</th>`;
   }).join("");
 
   $("body").innerHTML = rows.length ? rows.map(r => "<tr>" + COLS.map(c =>
@@ -269,11 +262,9 @@ function render(){
     rows.forEach(r => { const v=(D.porMes[mes]||{})[r.loja]; if (v) Object.entries(v.bancos).forEach(([b,n]) => bancos[b]=(bancos[b]||0)+n); });
     const top = Object.entries(bancos).sort((a,b) => b[1]-a[1])[0];
     const comMeta = rows.filter(r => r.meta!=null);
-    const tipos = {};
-    rows.forEach(r => r.fatTipos && Object.entries(r.fatTipos).forEach(([k,v]) => tipos[k]=(tipos[k]||0)+v));
     const retornoBase = rows.reduce((t,r) => { const v=(D.porMes[mes]||{})[r.loja]; return t + (v ? v.retorno : 0); }, 0);
     const tot = {
-      faturamento: rows.some(r => r.faturamento!=null) ? soma("faturamento") : null, fatTipos: tipos, fatPend: soma("fatPend"),
+      faturamento: rows.some(r => r.faturamento!=null) ? soma("faturamento") : null,
       vendas: temVenda ? soma("vendas") : null, financiadas: temVenda ? soma("financiadas") : null,
       banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
       retorno: soma("retorno", comMeta), meta: comMeta.length ? soma("meta", comMeta) : null, projecao: null,

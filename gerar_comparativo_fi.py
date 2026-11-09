@@ -1,16 +1,17 @@
 """Gera o Comparativo F&I entre lojas (comparativo_financiamento.html) a partir das planilhas de F&I.
 
 Uso:
-    python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI.xlsx Indicador_Metas.xlsx META_FI_2026.xlsx \
-        CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx [saida.html]
+    python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI.xlsx Indicador_Metas.xlsx META_FI_2026.xlsx [saida.html]
 
 Lê só os valores já calculados (salve as planilhas no Excel antes de rodar).
 Nenhum número é inventado: o que não existe nas planilhas aparece como "—" na página.
 
 De onde vem cada coluna (por loja = coluna "estoque tipo" das bases):
-- Faturamento ........ notas fiscais de F&I (aba Controle do controle de NFs: retorno, seguro, bônus,
-                       blindagem, PPS, campanha), pelo mês da solicitação, como na aba Resumo
-- Penetration ........ vendas com financiamento INTERNO ÷ vendas totais
+- Faturamento ........ "Volume Financ. Interno (R$)" da aba RELATÓRIO do Indicador Diário
+- Penetration ........ "Positivação F&I (%)" da aba RELATÓRIO do Indicador Diário
+  (a aba RELATÓRIO mostra um mês por vez; para os outros meses o gerador aplica a mesma conta
+   da aba às bases LINX REL VENDAS + NBS REL VENDAS: financ. interno ÷ vendas totais e soma do valor
+   financiado interno, e confere que bate com a aba no mês que ela mostra)
 - Principal banco .... banco com mais financiamentos INTERNOS no mês
 - Retorno ............ LINX RES VEIC VEND FI "Retorno" + NBS REL VENDAS "RETORNO6"
 - Retorno médio ...... retorno ÷ financiamentos internos (o "unit" da aba de resumo)
@@ -152,51 +153,39 @@ def ler_meta_grupo(xlsx):
     return out
 
 
-# nome da empresa no controle de NFs -> loja nas bases de vendas
-LOJA_NF = {
-    "MITISUBISHI MANAUS": "MITSUBISHI MANAUS",
-    "MITSUBISHI RORAIMA": "MITSUBISHI BOA VISTA",  # GB Roraima Autocenter = Mitsubishi Boa Vista (aba DADOS)
-    "TOCAUTO AUTO": "VW TOCAUTO AUTO",
-}
+def ler_relatorio(xlsx):
+    """Bloco do topo da aba RELATÓRIO: mês em L3, uma linha por loja até TOTAL GERAL."""
+    ws = openpyxl.load_workbook(xlsx, data_only=True)["RELATÓRIO"]
+    mes = str(ws["L3"].value or "").strip().upper()
+    out = {}
+    for r in range(3, ws.max_row + 1):
+        loja = ws.cell(r, 2).value
+        if not loja or str(loja).upper().startswith("TOTAL"):
+            break
+        out[loja] = {"vendas": ws.cell(r, 3).value, "financiadas": ws.cell(r, 4).value,
+                     "volume": ws.cell(r, 5).value, "positivacao": ws.cell(r, 6).value}
+    return (mes if mes in MESES else None), out
 
 
-def ler_notas(xlsx, ano):
-    ws = openpyxl.load_workbook(xlsx, data_only=True)["Controle"]
-    fat = defaultdict(lambda: defaultdict(lambda: {"total": 0.0, "tipos": Counter(), "pendente": 0.0}))
-    sem_mes = Counter()
-    for r in linhas(ws):
-        valor, empresa = r.get("VALOR"), str(r.get("EMPRESA") or "").strip().upper()
-        if not isinstance(valor, (int, float)) or not empresa:
-            continue
-        loja = LOJA_NF.get(empresa, empresa)
-        mes = r.get("MÊS")
-        if not isinstance(mes, int) or not 1 <= mes <= 12 or (ano and r.get("ANO") != ano):
-            sem_mes[loja] += valor  # sem data de solicitação: não entra em nenhum mês
-            continue
-        a = fat[MESES[mes - 1]][loja]
-        a["total"] += valor
-        a["tipos"][str(r.get("TIPO") or "OUTROS")] += valor
-        if not r.get("N° NF"):
-            a["pendente"] += valor
-    out = {m: {l: {"total": round(a["total"], 2), "pendente": round(a["pendente"], 2),
-                   "tipos": {k: round(v, 2) for k, v in a["tipos"].most_common()}}
-               for l, a in lojas.items()} for m, lojas in fat.items()}
-    return out, {l: round(v, 2) for l, v in sem_mes.items()}
-
-
-def main(diario, metas_xlsx, meta_fi, notas, saida):
+def main(diario, metas_xlsx, meta_fi, saida):
     por_mes, ano = ler_vendas(diario)
-    faturamento, nf_sem_mes = ler_notas(notas, ano)
+    mes_rel, rel = ler_relatorio(diario)
+    if mes_rel:
+        for loja, v in rel.items():
+            a = por_mes.setdefault(mes_rel, {}).setdefault(
+                loja, {"vendas": 0, "financiadas": 0, "volume": 0, "retorno": 0, "bancos": {}})
+            if (a["vendas"], a["financiadas"], round(a["volume"], 2)) != (v["vendas"], v["financiadas"], round(v["volume"] or 0, 2)):
+                print(f"AVISO: {loja} {mes_rel}: bases {a['vendas']}/{a['financiadas']}/{a['volume']} "
+                      f"x RELATÓRIO {v['vendas']}/{v['financiadas']}/{v['volume']} (vale o RELATÓRIO)")
+            a.update(v)  # no mês da aba RELATÓRIO valem os números da própria aba
     metas, parcial = ler_metas(metas_xlsx)
-    lojas = sorted({l for m in por_mes.values() for l in m} | set(metas)
-                   | {l for m in faturamento.values() for l in m} | set(nf_sem_mes))
+    lojas = sorted({l for m in por_mes.values() for l in m} | set(metas))
     dados = {
         "ano": ano,
         "meses": [m for m in MESES if m in por_mes or m == parcial["mes"]],
         "lojas": lojas,
         "porMes": por_mes,
-        "faturamento": faturamento,
-        "nfSemMes": nf_sem_mes,
+        "mesRelatorio": mes_rel,
         "metas": metas,
         "parcial": parcial,
         "metaGrupo": ler_meta_grupo(meta_fi),
@@ -209,6 +198,6 @@ def main(diario, metas_xlsx, meta_fi, notas, saida):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 4:
         sys.exit(__doc__)
-    main(*sys.argv[1:5], sys.argv[5] if len(sys.argv) > 5 else "comparativo_financiamento.html")
+    main(*sys.argv[1:4], sys.argv[4] if len(sys.argv) > 4 else "comparativo_financiamento.html")
