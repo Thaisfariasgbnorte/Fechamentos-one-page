@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparativo entre Lojas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --surface:#ffffff; --panel:#f5f9fc; --line:#dfe7ef; --line-2:#eef3f7;
+  --ink:#0f2747; --text:#1d2b3a; --muted:#5b6b7c; --eyebrow:#0f7b8a;
+  --head:#eef4fa; --sorted:#dceaf8; --row-alt:#f3f8fd;
+  --chip:#e3eefa; --chip-ink:#164a7d;
+  --good:#1d7a4a; --good-bg:#e1f3e8; --warn:#9a6400; --warn-bg:#fdf0d3; --bad:#b3261e; --bad-bg:#fbe1de;
+  --rule:#c99a3b;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1621; --surface:#121c29; --panel:#162231; --line:#26364a; --line-2:#1c2a3b;
+    --ink:#e6eef8; --text:#d5dee9; --muted:#93a3b6; --eyebrow:#4fc1cf;
+    --head:#17263a; --sorted:#1d3452; --row-alt:#152234;
+    --chip:#1c3350; --chip-ink:#a9cdf2;
+    --good:#6fd39b; --good-bg:#173829; --warn:#f0c062; --warn-bg:#3a2e14; --bad:#f39a92; --bad-bg:#3e1d1b;
+    --rule:#c99a3b;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1621; --surface:#121c29; --panel:#162231; --line:#26364a; --line-2:#1c2a3b;
+  --ink:#e6eef8; --text:#d5dee9; --muted:#93a3b6; --eyebrow:#4fc1cf;
+  --head:#17263a; --sorted:#1d3452; --row-alt:#152234;
+  --chip:#1c3350; --chip-ink:#a9cdf2;
+  --good:#6fd39b; --good-bg:#173829; --warn:#f0c062; --warn-bg:#3a2e14; --bad:#f39a92; --bad-bg:#3e1d1b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px 16px 40px}
+.card{max-width:1180px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px 10px;flex-wrap:wrap}
+.eyebrow{color:var(--eyebrow);font-size:12px;font-weight:600}
+h1{margin:2px 0 4px;color:var(--ink);font-size:19px;font-weight:700}
+.sub{color:var(--muted);font-size:12px}
+.btn{font:500 13px inherit;font-family:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--head)}
+.filters{margin:0 16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center}
+.filters label{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink);font-size:13px}
+select{font:400 13px inherit;font-family:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 8px;min-width:150px;max-width:100%}
+.meta-line{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 16px 6px;font-size:11.5px;color:var(--muted)}
+.meta-line b{color:var(--ink)}
+.notice{margin:0 16px 10px;padding:2px 0 2px 10px;border-left:2px solid var(--rule);font-size:11.5px;color:var(--warn)}
+.notice:empty{display:none}
+.scroll{overflow-x:auto;border-top:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;min-width:860px}
+th,td{padding:9px 12px;text-align:right;white-space:nowrap}
+th{background:var(--head);color:var(--ink);font-weight:500;font-size:12px;cursor:pointer;user-select:none;position:relative}
+th:first-child,td:first-child{text-align:left}
+th.sorted{background:var(--sorted);color:var(--chip-ink);font-weight:600}
+th .arr{font-size:11px;margin-left:3px}
+th:focus-visible{outline:2px solid var(--eyebrow);outline-offset:-2px}
+th.center,td.center{text-align:center}
+tbody tr{border-top:1px solid var(--line-2)}
+tbody tr:nth-child(even){background:var(--row-alt)}
+td{font-variant-numeric:tabular-nums;color:var(--text)}
+td.loja{font-weight:700;color:var(--ink);white-space:normal;min-width:120px}
+td.loja .wrap{display:flex;justify-content:space-between;align-items:center;gap:8px}
+td.loja .go{color:var(--muted);font-size:11px;font-weight:400}
+td.strong{font-weight:700;color:var(--ink)}
+tfoot td{border-top:2px solid var(--line);font-weight:700;color:var(--ink);background:var(--panel)}
+.chip{display:inline-block;padding:2px 7px;border-radius:5px;background:var(--chip);color:var(--chip-ink);font-weight:600;font-size:12.5px}
+.st{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-weight:500;font-size:12.5px}
+.st.good{background:var(--good-bg);color:var(--good)}
+.st.warn{background:var(--warn-bg);color:var(--warn)}
+.st.bad{background:var(--bad-bg);color:var(--bad)}
+.bank{display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.bank small{color:var(--muted);font-size:11px}
+.dash{color:var(--muted)}
+.foot{padding:10px 16px 14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+.foot b{color:var(--ink)}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--text)}
+details ul{margin:8px 0 0;padding-left:18px;line-height:1.6}
+.sample{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;background:var(--warn-bg);color:var(--warn);font-size:11px;font-weight:600}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Performance por unidade · F&amp;I</div>
+      <h1>Comparativo entre lojas</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div>
+      <button class="btn" id="btnImport" type="button" title="Carregar um CSV com os números do mês">&#8635; Atualizar lojas</button>
+      <input type="file" id="file" accept=".csv,text/csv" hidden>
+    </div>
+  </div>
+
+  <div class="filters">
+    <label>Lojas
+      <select id="fLoja"><option value="">Todas as lojas</option></select>
+    </label>
+    <label>Meta de faturamento
+      <select id="fMeta">
+        <option value="">Todas as situações</option>
+        <option value="good">Meta atingida (≥ 100%)</option>
+        <option value="warn">Perto da meta (90–99%)</option>
+        <option value="bad">Abaixo de 90%</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="meta-line">
+    <span id="ordem"></span>
+    <span>Clique nos títulos para ordenar &#8645;</span>
+  </div>
+  <div class="notice" id="notice"></div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+      <tfoot id="foot"></tfoot>
+    </table>
+  </div>
+
+  <div class="foot">
+    <b>Faixas da meta:</b> verde ≥ 100% · amarelo 90–99% · vermelho &lt; 90%.
+    Penetration mostra quanto das vendas saiu financiado em cada loja.
+    <details>
+      <summary>Como ler os indicadores e de onde vêm os números</summary>
+      <ul>
+        <li><b>Faturamento</b>: receita de vendas de veículos da loja no mês.</li>
+        <li><b>% aprovação</b>: fichas aprovadas ÷ fichas enviadas aos bancos.</li>
+        <li><b>Penetration</b>: vendas financiadas ÷ vendas totais da loja.</li>
+        <li><b>Principal banco</b>: banco com mais contratos no mês; abaixo, a fatia dele nos contratos da loja.</li>
+        <li><b>% atingimento meta</b>: faturamento ÷ meta de faturamento do mês.</li>
+        <li><b>Retorno médio</b>: retorno (comissão/plus) recebido dos bancos ÷ número de contratos financiados.</li>
+        <li>A linha <b>Consolidado</b> soma as lojas filtradas e recalcula as taxas sobre os totais (não é média das taxas).</li>
+        <li><b>Atualizar lojas</b> lê um CSV com as colunas:
+          <code>loja;faturamento;meta;fichas;aprovadas;vendas;financiadas;banco;contratos_banco;retorno_total</code>
+          (separador “;” ou “,”, decimais com vírgula ou ponto).</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<script>
+// ===== DADOS — substitua pelos números reais do mês (ou use "Atualizar lojas" com um CSV) =====
+let PERIODO = "Setembro 2026";
+let AMOSTRA = true; // true = números de exemplo; vira false ao importar um CSV
+let LOJAS = [
+  // loja, faturamento, meta, fichas enviadas, fichas aprovadas, vendas, vendas financiadas, principal banco, contratos no principal banco, retorno total (R$)
+  {loja:"Omoda | Jaecoo Imperatriz", faturamento:620000,  meta:750000,  fichas:9,  aprovadas:6,  vendas:4,  financiadas:3,  banco:"BV",        contratosBanco:2, retorno:7800},
+  {loja:"Mitsubishi Manaus",         faturamento:2950000, meta:2800000, fichas:28, aprovadas:19, vendas:12, financiadas:8,  banco:"Santander", contratosBanco:5, retorno:24000},
+  {loja:"Seminovos GB Select",       faturamento:980000,  meta:1050000, fichas:21, aprovadas:12, vendas:9,  financiadas:6,  banco:"Bradesco",  contratosBanco:3, retorno:13200},
+  {loja:"Omoda | Jaecoo Boa Vista",  faturamento:460000,  meta:600000,  fichas:7,  aprovadas:4,  vendas:3,  financiadas:2,  banco:"BV",        contratosBanco:1, retorno:5100},
+  {loja:"Tocauto Auto",              faturamento:3850000, meta:3500000, fichas:40, aprovadas:29, vendas:18, financiadas:12, banco:"Itaú",      contratosBanco:7, retorno:38400},
+  {loja:"Volvo Belém",               faturamento:640000,  meta:800000,  fichas:4,  aprovadas:3,  vendas:2,  financiadas:2,  banco:"Safra",     contratosBanco:1, retorno:9000},
+  {loja:"MG Motor Manaus",           faturamento:290000,  meta:450000,  fichas:6,  aprovadas:3,  vendas:2,  financiadas:1,  banco:"Pan",       contratosBanco:1, retorno:2300},
+  {loja:"Mitsubishi Boa Vista",      faturamento:470000,  meta:650000,  fichas:5,  aprovadas:3,  vendas:2,  financiadas:1,  banco:"Santander", contratosBanco:1, retorno:3100},
+  {loja:"Volvo Manaus",              faturamento:380000,  meta:700000,  fichas:3,  aprovadas:2,  vendas:1,  financiadas:1,  banco:"Safra",     contratosBanco:1, retorno:4800},
+  {loja:"GWM Boa Vista",             faturamento:0,       meta:450000,  fichas:3,  aprovadas:1,  vendas:0,  financiadas:0,  banco:"",          contratosBanco:0, retorno:0},
+  {loja:"Tocauto Imperatriz",        faturamento:0,       meta:300000,  fichas:2,  aprovadas:0,  vendas:0,  financiadas:0,  banco:"",          contratosBanco:0, retorno:0},
+];
+// ==============================================================================================
+
+const brl = new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2});
+const pct = v => v==null ? null : (v*100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+const div = (a,b) => b ? a/b : null;
+const DASH = '<span class="dash">—</span>';
+const faixa = v => v==null ? null : v>=1 ? "good" : v>=0.9 ? "warn" : "bad";
+const ICON = {good:"&#10003;", warn:"&#9888;", bad:"&#10005;"};
+
+function calc(r){
+  return {...r,
+    aprovacao: div(r.aprovadas, r.fichas),
+    penetration: div(r.financiadas, r.vendas),
+    shareBanco: div(r.contratosBanco, r.financiadas),
+    atingimento: div(r.faturamento, r.meta),
+    retornoMedio: div(r.retorno, r.financiadas),
+  };
+}
+
+const COLS = [
+  {k:"loja",        t:"Loja",               txt:true},
+  {k:"faturamento", t:"Faturamento",        f:r => r.faturamento ? brl.format(r.faturamento) : DASH, cls:"strong"},
+  {k:"aprovacao",   t:"% aprovação",        f:r => r.aprovacao==null ? DASH : `<span class="chip">${pct(r.aprovacao)}</span>`},
+  {k:"penetration", t:"Penetration",        f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span>`},
+  {k:"banco",       t:"Principal banco",    txt:true, f:r => r.banco ? `<span class="bank">${esc(r.banco)}<small>${pct(r.shareBanco) ?? "—"} dos contratos</small></span>` : DASH},
+  {k:"atingimento", t:"% atingimento meta", center:true, f:r => { const s=faixa(r.atingimento); return s ? `<span class="st ${s}">${ICON[s]} ${pct(r.atingimento)}</span>` : DASH; }},
+  {k:"retornoMedio",t:"Retorno médio",      f:r => r.retornoMedio==null ? DASH : brl.format(r.retornoMedio)},
+];
+
+let sortKey = "faturamento", sortDir = -1;
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function fillLojas(){
+  const sel = $("fLoja"), cur = sel.value;
+  sel.innerHTML = '<option value="">Todas as lojas</option>' +
+    LOJAS.map(r => `<option>${esc(r.loja)}</option>`).join("");
+  if (LOJAS.some(r => r.loja===cur)) sel.value = cur;
+}
+
+function render(){
+  const rows = LOJAS.map(calc)
+    .filter(r => !$("fLoja").value || r.loja===$("fLoja").value)
+    .filter(r => !$("fMeta").value || faixa(r.atingimento)===$("fMeta").value);
+
+  const col = COLS.find(c => c.k===sortKey);
+  rows.sort((a,b) => {
+    const x=a[sortKey], y=b[sortKey];
+    if (x==null || x==="") return 1; if (y==null || y==="") return -1;
+    return (col.txt ? String(x).localeCompare(String(y),"pt-BR") : x-y) * sortDir;
+  });
+
+  $("sub").innerHTML = `${esc(PERIODO)} · ${rows.length} de ${LOJAS.length} lojas` + (AMOSTRA ? '<span class="sample">dados de exemplo</span>' : "");
+  $("ordem").innerHTML = `Ordenado por <b>${col.t}</b> · ` + (col.txt ? (sortDir>0 ? "A → Z" : "Z → A") : (sortDir<0 ? "maior primeiro" : "menor primeiro"));
+
+  const semVenda = rows.filter(r => !r.vendas).map(r => r.loja);
+  $("notice").textContent = semVenda.length ? `Sem vendas no período (penetration e retorno sem base): ${semVenda.join(", ")}.` : "";
+
+  $("head").innerHTML = COLS.map(c => {
+    const on = c.k===sortKey;
+    const arr = on ? `<span class="arr">${sortDir<0 ? "&#8595;" : "&#8593;"}</span>` : "";
+    return `<th tabindex="0" data-k="${c.k}" class="${on?"sorted":""} ${c.center?"center":""}" aria-sort="${on?(sortDir<0?"descending":"ascending"):"none"}">${c.t}${arr}</th>`;
+  }).join("");
+
+  $("body").innerHTML = rows.length ? rows.map(r => "<tr>" + COLS.map(c => {
+    if (c.k==="loja") return `<td class="loja"><span class="wrap">${esc(r.loja)}<span class="go">&#8599;</span></span></td>`;
+    return `<td class="${c.cls||""} ${c.center?"center":""}">${c.f(r)}</td>`;
+  }).join("") + "</tr>").join("")
+  : `<tr><td colspan="${COLS.length}" class="empty">Nenhuma loja com esses filtros.</td></tr>`;
+
+  // consolidado das lojas visíveis
+  if (rows.length > 1){
+    const s = k => rows.reduce((t,r) => t + (r[k]||0), 0);
+    const bancos = {};
+    rows.forEach(r => { if (r.banco) bancos[r.banco] = (bancos[r.banco]||0) + r.contratosBanco; });
+    const topBanco = Object.entries(bancos).sort((a,b) => b[1]-a[1])[0];
+    const tot = calc({loja:"Consolidado", faturamento:s("faturamento"), meta:s("meta"), fichas:s("fichas"),
+      aprovadas:s("aprovadas"), vendas:s("vendas"), financiadas:s("financiadas"),
+      banco: topBanco ? topBanco[0] : "", contratosBanco: topBanco ? topBanco[1] : 0, retorno:s("retorno")});
+    $("foot").innerHTML = "<tr>" + COLS.map(c => c.k==="loja" ? "<td>Consolidado</td>" : `<td class="${c.center?"center":""}">${c.f(tot)}</td>`).join("") + "</tr>";
+  } else $("foot").innerHTML = "";
+
+  document.querySelectorAll("#head th").forEach(th => {
+    const go = () => { const k = th.dataset.k; if (k===sortKey) sortDir*=-1; else { sortKey=k; sortDir = COLS.find(c=>c.k===k).txt ? 1 : -1; } render(); };
+    th.onclick = go;
+    th.onkeydown = e => { if (e.key==="Enter" || e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+
+// ===== importação de CSV =====
+function parseNum(v){
+  if (v==null) return 0;
+  let s = String(v).trim().replace(/R\$\s?/i,"").replace(/\s/g,"");
+  if (!s) return 0;
+  if (s.includes(",")) s = s.replace(/\./g,"").replace(",",".");
+  const n = Number(s); return isFinite(n) ? n : 0;
+}
+function importCsv(text){
+  const lines = text.replace(/^﻿/,"").split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) throw new Error("CSV vazio.");
+  const sep = lines[0].includes(";") ? ";" : ",";
+  const head = lines[0].split(sep).map(h => h.trim().toLowerCase());
+  const idx = n => head.indexOf(n);
+  const need = ["loja","faturamento","meta","fichas","aprovadas","vendas","financiadas","banco","contratos_banco","retorno_total"];
+  const falta = need.filter(n => idx(n) < 0);
+  if (falta.length) throw new Error("Faltam colunas: " + falta.join(", "));
+  const periodoIdx = idx("periodo");
+  const out = lines.slice(1).map(l => {
+    const c = l.split(sep);
+    if (periodoIdx >= 0 && c[periodoIdx]) PERIODO = c[periodoIdx].trim();
+    return {loja:c[idx("loja")].trim(), faturamento:parseNum(c[idx("faturamento")]), meta:parseNum(c[idx("meta")]),
+      fichas:parseNum(c[idx("fichas")]), aprovadas:parseNum(c[idx("aprovadas")]), vendas:parseNum(c[idx("vendas")]),
+      financiadas:parseNum(c[idx("financiadas")]), banco:(c[idx("banco")]||"").trim(),
+      contratosBanco:parseNum(c[idx("contratos_banco")]), retorno:parseNum(c[idx("retorno_total")])};
+  }).filter(r => r.loja);
+  if (!out.length) throw new Error("Nenhuma loja no CSV.");
+  LOJAS = out; AMOSTRA = false;
+}
+$("btnImport").onclick = () => $("file").click();
+$("file").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(t => { try { importCsv(t); fillLojas(); render(); } catch(err){ alert("Não consegui ler o CSV: " + err.message); } });
+  e.target.value = "";
+};
+$("fLoja").onchange = render;
+$("fMeta").onchange = render;
+
+fillLojas();
+render();
+</script>
+</body>
+</html>

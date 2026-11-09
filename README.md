@@ -36,8 +36,18 @@ variação compara com o período anterior de mesmo tamanho (em p.p. para indica
 **Exportar PDF** gera 2 páginas A4 paisagem (resultados; oficina, estoque e qualidade) do período e da
 visão escolhidos. Escolhendo uma loja, todas as tabelas mostram só aquela loja.
 
+## Comparativo entre lojas (F&I)
+
+`comparativo_financiamento.html` compara as lojas em faturamento, % aprovação, penetration,
+principal banco, % atingimento da meta e retorno médio, com filtro por loja e por situação da meta,
+ordenação por coluna e linha de consolidado. Vem com **dados de exemplo**: troque a lista `LOJAS`
+no início do script ou use **Atualizar lojas** para carregar um CSV com as colunas
+`loja;faturamento;meta;fichas;aprovadas;vendas;financiadas;banco;contratos_banco;retorno_total`
+(opcional: `periodo`).
+
 ## Arquivos
 
 - `gerar_one_page.py` — lê a planilha e grava o HTML.
 - `template.html` — layout da página (os dados entram no lugar de `/*__DADOS__*/null`).
 - `index.html` — página gerada.
+- `comparativo_financiamento.html` — comparativo de F&I entre lojas.
