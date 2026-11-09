@@ -32,6 +32,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 table{font-size:inherit}
 .card{max-width:1180px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -96,6 +97,22 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
 .btn-pdf:focus-visible{outline:2px solid var(--eyebrow);outline-offset:2px}
 .btn-pdf:disabled{opacity:.55;cursor:progress}
 .pdf-status{font-size:11.5px;color:var(--muted);min-height:1em}
+/* atualizar dados */
+.atualizar{padding:14px 16px 16px;border-top:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;gap:10px}
+.atualizar p{margin:0;color:var(--muted);font-size:12.5px;max-width:75ch}
+.atualizar .linha{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.atualizar input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.btn:focus-visible,.atualizar label.btn:focus-within{outline:2px solid var(--eyebrow);outline-offset:2px}
+.btn:disabled{opacity:.55;cursor:progress}
+.btn.forte{background:var(--ink);color:var(--surface);border-color:var(--ink);font-weight:600}
+.btn.forte:hover{background:var(--chip-ink);border-color:var(--chip-ink)}
+.previa{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.previa b{color:var(--ink)}
+.previa ul{margin:0;padding-left:18px;line-height:1.55}
+.previa .erro{color:var(--bad)} .previa .aviso{color:var(--warn)}
+.msg{font-size:12px;color:var(--muted);min-height:1em}
+.msg.ok{color:var(--good)} .msg.erro{color:var(--bad)}
+.faixa-previa{margin:0 16px 10px;padding:7px 10px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:12px;font-weight:600}
 /* aplicado só na cópia usada para gerar o PDF */
 .pdf .filters,.pdf .acoes,.pdf .meta-line span:last-child,.pdf details{display:none}
 .pdf .scroll{overflow:visible}
@@ -132,6 +149,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
     <span id="ordem"></span>
     <span>Clique nos títulos para ordenar &#8645;</span>
   </div>
+  <div class="faixa-previa" id="faixaPrevia" hidden>Prévia da planilha enviada — ainda não publicada.</div>
   <div class="notice" id="notice"></div>
 
   <div class="scroll">
@@ -146,7 +164,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
  <div id="folha2">
   <div class="grupo">
     <h2>Meta de retorno do grupo</h2>
-    <p>Meta: linha de total da planilha METAS BI 2026. Real de retorno: linha RETORNO do quadro “4) Por tipo” da aba Resumo do Controle de Solicitações de Notas Fiscais.</p>
+    <p>Meta: linha TOTAL GRUPO da aba METAS da planilha base (METAS BI 2026). Real de retorno: aba RETORNO_NF (Controle de Solicitações de NF, aba Resumo, quadro “4) Por tipo”, linha RETORNO).</p>
     <div class="scroll" style="border:0">
       <table>
         <thead><tr><th>Mês</th><th>Meta</th><th>Real de retorno</th><th class="center">Retorno ÷ meta</th></tr></thead>
@@ -160,25 +178,41 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
     <details>
       <summary>Como ler os indicadores e de onde vêm os números</summary>
       <ul>
-        <li><b>Faturamento</b>: coluna “Volume Financ. Interno (R$)” da aba RELATÓRIO do Indicador Diário.</li>
-        <li><b>Var. MA</b>: variação do faturamento contra o mês anterior (&#9650; subiu, &#9660; caiu); embaixo, o faturamento do mês anterior.</li>
+        <li>Todos os números vêm da <b>planilha base</b> (abas DADOS_MES, METAS e RETORNO_NF), preenchida a partir do Indicador Diário F&amp;I, da METAS BI 2026 e do Controle de Solicitações de NF.</li>
+        <li><b>Faturamento</b>: “Volume financ. interno (R$)” (aba RELATÓRIO do Indicador Diário, coluna E).</li>
+        <li><b>Var. MA</b>: faturamento contra o mês anterior (&#9650; subiu, &#9660; caiu); embaixo, o faturamento do mês anterior.</li>
         <li><b>% aprovação</b>: nenhuma das planilhas traz fichas enviadas e aprovadas pelos bancos, então a coluna fica vazia até esse dado existir.</li>
-        <li><b>Penetration</b>: coluna “Positivação F&amp;I (%)” da aba RELATÓRIO do Indicador Diário (financiamentos internos ÷ vendas totais).</li>
-        <li>A aba RELATÓRIO mostra um mês por vez (hoje, outubro). Nos outros meses a página usa a mesma conta da aba aplicada às bases LINX REL VENDAS e NBS REL VENDAS (loja = coluna “estoque tipo”); no mês da aba, os números são idênticos.</li>
-        <li><b>Principal banco</b>: banco que mais aparece no mês na coluna D (Banco) da aba LINX REL VENDAS e na coluna E (BANCO) da aba NBS REL VENDAS do Indicador Diário, com a loja das colunas K e M (“estoque tipo”). Contam todas as vendas com banco (interno, externo e consórcio); “À VISTA”, vazio e “EXTERNO” não contam.</li>
-        <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja da planilha METAS BI 2026 (set a dez). Loja com meta 0 ou fora da planilha aparece “sem meta”. Nomes da planilha: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
-        <li><b>Retorno médio</b>: coluna G “Retorno F&amp;I Gerado (R$)” ÷ coluna D “Financ. Interno (Qtd)” da aba RELATÓRIO do Indicador Diário. Nos outros meses, a mesma conta com o retorno da aba LINX RES VEIC VEND FI, que é o que a coluna G soma.</li>
-        <li>O retorno do <b>% atingimento meta</b> soma LINX RES VEIC VEND FI e NBS REL VENDAS.</li>
+        <li><b>Penetration</b>: financiamentos internos ÷ vendas totais (Positivação F&amp;I da aba RELATÓRIO).</li>
+        <li><b>Principal banco</b>: banco que mais aparece nas vendas da loja (LINX REL VENDAS col. D e NBS REL VENDAS col. E); embaixo, quantas vendas foram nele do total com banco. No consolidado, soma as vendas do principal banco de cada loja.</li>
+        <li><b>% atingimento meta</b>: retorno total LINX + NBS da loja ÷ meta de retorno da loja (aba METAS). Meta vazia ou 0 aparece “sem meta”.</li>
+        <li><b>Retorno médio</b>: “Retorno F&amp;I gerado (R$)” ÷ financiamentos internos (aba RELATÓRIO, colunas G e D).</li>
         <li>Na linha <b>Consolidado</b> as taxas são recalculadas sobre os totais; o atingimento usa só as lojas que têm meta.</li>
-        <li>Para atualizar: <code>python3 gerar_comparativo_fi.py</code> com as quatro planilhas (veja o README).</li>
       </ul>
     </details>
   </div>
  </div>
+ <section class="atualizar" id="atualizar" aria-labelledby="tAtualizar">
+   <h2 id="tAtualizar">Atualizar dados</h2>
+   <p>Baixe a planilha base (já vem com os dados desta página), atualize no Excel e envie aqui. A página mostra uma prévia; depois é só publicar para o mesmo link mostrar os dados novos.</p>
+   <div class="linha">
+     <button type="button" class="btn" id="btnBase">Baixar planilha base</button>
+     <label class="btn" for="arqBase">Enviar planilha atualizada<input type="file" id="arqBase" accept=".xlsx,.xlsm,.xls"></label>
+   </div>
+   <div class="previa" id="previa" hidden>
+     <div id="previaResumo"></div>
+     <div class="linha">
+       <button type="button" class="btn forte" id="btnPublicar">Publicar atualização</button>
+       <button type="button" class="btn" id="btnDescartar">Descartar prévia</button>
+     </div>
+   </div>
+   <span class="msg" id="msgAtu" aria-live="polite"></span>
+ </section>
 </div>
 
 <script>
-const D = /*__DADOS__*/null;
+let D = /*__DADOS__*/null;
+// cópia do próprio modelo da página, usada para republicar com dados novos (Atualizar dados)
+const FONTE = /*__FONTE__*/null;
 const NOMES_MES = {JAN:"Janeiro",FEV:"Fevereiro",MAR:"Março",ABR:"Abril",MAI:"Maio",JUN:"Junho",JUL:"Julho",AGO:"Agosto",SET:"Setembro",OUT:"Outubro",NOV:"Novembro",DEZ:"Dezembro"};
 const SIGLAS = new Set(["GB","VW","MG","GWM","F&I"]);
 const nomeLoja = s => s.toLowerCase().replace(/[^\s(),]+/g, w => SIGLAS.has(w.toUpperCase()) ? w.toUpperCase() : (["e","de","da","do"].includes(w) ? w : w[0].toUpperCase()+w.slice(1)));
@@ -198,16 +232,14 @@ function linha(loja, mes){
   const parcial = D.parcial && D.parcial.mes===mes ? D.parcial.lojas[loja] : null;
   const meta = parcial ? parcial.meta : (D.metas[loja]||{})[mes];
   const retorno = parcial ? parcial.realizado : (v ? v.retorno : null);
-  const bancos = v ? Object.entries(v.bancos) : [];
-  const top = bancos[0];
   return {
     loja, nome: nomeLoja(loja),
     faturamento: v ? v.volume : null,
     ...varMes(loja, mes, v),
     aprovacao: null,
     vendas: v ? v.vendas : null, financiadas: v ? v.financiadas : null,
-    penetration: v ? (v.positivacao ?? div(v.financiadas, v.vendas)) : null,
-    banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0, comBanco: bancos.reduce((t,[,n]) => t+n, 0),
+    penetration: v ? div(v.financiadas, v.vendas) ?? (v.vendas ? 0 : null) : null,
+    banco: v && v.banco ? v.banco : null, bancoQtd: v ? v.bancoQtd || 0 : 0, comBanco: v ? v.comBanco || 0 : 0,
     retorno, meta: meta ?? null, atingimento: div(retorno, meta),
     projecao: parcial ? parcial.pctProjecao : null,
     retornoRel: v ? v.retornoRel : null,
@@ -241,7 +273,7 @@ const COLS = [
   {k:"varMA", t:"Var. MA", tip:"Faturamento contra o mês anterior", f:celVar},
   {k:"aprovacao", t:"% aprovação", f:() => '<span class="na">sem dado</span>'},
   {k:"penetration", t:"Penetration", tip:"Positivação F&I (%) — aba RELATÓRIO", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
-  {k:"banco", t:"Principal banco", txt:true, tip:"LINX REL VENDAS col. D + NBS REL VENDAS col. E, por loja (col. K / M)", f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.comBanco} vendas com banco</small>` : DASH},
+  {k:"banco", t:"Principal banco", txt:true, tip:"Banco que mais aparece nas vendas da loja", f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.comBanco} vendas com banco</small>` : DASH},
   {k:"atingimento", t:"% atingimento meta", center:true, f:r => {
     if (r.meta==null) return '<span class="na">sem meta</span>';
     const s = faixa(r.projecao ?? r.atingimento); // mês parcial: cor pela projeção, como o Status do Painel
@@ -251,13 +283,19 @@ const COLS = [
 ];
 
 let sortKey = "faturamento", sortDir = -1;
-const mesesComVenda = D.meses.filter(m => D.porMes[m]);
-$("fMes").innerHTML = D.meses.map(m => `<option value="${m}">${NOMES_MES[m]} ${D.ano}${D.parcial && D.parcial.mes===m ? " (parcial)" : ""}</option>`).join("");
-$("fMes").value = mesesComVenda[mesesComVenda.length-1] || D.meses[D.meses.length-1];
-$("fLoja").innerHTML += D.lojas.map(l => `<option value="${esc(l)}">${esc(nomeLoja(l))}</option>`).join("");
+function iniciarFiltros(){
+  const mesesComVenda = D.meses.filter(m => D.porMes[m]);
+  const mesAtual = $("fMes").value;
+  $("fMes").innerHTML = D.meses.map(m => `<option value="${m}">${NOMES_MES[m]} ${D.ano}</option>`).join("");
+  $("fMes").value = D.meses.includes(mesAtual) ? mesAtual : (mesesComVenda[mesesComVenda.length-1] || D.meses[D.meses.length-1] || "");
+  const lojaAtual = $("fLoja").value;
+  $("fLoja").innerHTML = '<option value="">Todas as lojas</option>' + D.lojas.map(l => `<option value="${esc(l)}">${esc(nomeLoja(l))}</option>`).join("");
+  $("fLoja").value = D.lojas.includes(lojaAtual) ? lojaAtual : "";
+}
 
 function render(){
   const mes = $("fMes").value;
+  if (!mes){ $("body").innerHTML = `<tr><td colspan="${COLS.length}" class="empty">A planilha não tem nenhum mês com dados.</td></tr>`; return; }
   const todas = D.lojas.map(l => linha(l, mes)).filter(r => r.temDado || r.meta!=null);
   const rows = todas
     .filter(r => !$("fLoja").value || r.loja===$("fLoja").value)
@@ -277,7 +315,7 @@ function render(){
   const avisos = [];
   if (D.parcial && D.parcial.mes===mes)
     avisos.push(`${NOMES_MES[mes]} é parcial: retorno lançado até ${D.parcial.corte} (${D.parcial.diasDecorridos} de ${D.parcial.diasUteis} dias úteis, aba Painel). As bases de vendas ainda não têm ${NOMES_MES[mes].toLowerCase()}, por isso penetration, banco e retorno médio ficam vazios.`);
-  if (!Object.values(D.metas).some(m => m[mes]!=null) && !(D.parcial && D.parcial.mes===mes)) avisos.push(`A planilha METAS BI 2026 só tem metas por loja de setembro a dezembro.`);
+  if (!Object.values(D.metas).some(m => m[mes]!=null) && !(D.parcial && D.parcial.mes===mes)) avisos.push(`A planilha base não tem metas por loja para ${NOMES_MES[mes].toLowerCase()}.`);
   const semVenda = rows.filter(r => r.vendas===0 || (r.vendas==null && D.porMes[mes])).map(r => r.nome);
   if (semVenda.length) avisos.push(`Sem vendas no mês nas bases: ${semVenda.join(", ")}.`);
   $("notice").innerHTML = avisos.map(a => `<div>${esc(a)}</div>`).join("");
@@ -297,13 +335,13 @@ function render(){
     const soma = (k, lista=rows) => lista.reduce((t,r) => t + (r[k]||0), 0);
     const temVenda = rows.some(r => r.vendas!=null);
     const bancos = {};
-    rows.forEach(r => { const v=(D.porMes[mes]||{})[r.loja]; if (v) Object.entries(v.bancos).forEach(([b,n]) => bancos[b]=(bancos[b]||0)+n); });
+    rows.forEach(r => { if (r.banco) bancos[r.banco] = (bancos[r.banco]||0) + r.bancoQtd; });
     const top = Object.entries(bancos).sort((a,b) => b[1]-a[1])[0];
     const comMeta = rows.filter(r => r.meta!=null);
     const tot = {
       faturamento: rows.some(r => r.faturamento!=null) ? soma("faturamento") : null,
       vendas: temVenda ? soma("vendas") : null, financiadas: temVenda ? soma("financiadas") : null,
-      banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0, comBanco: Object.values(bancos).reduce((t,n) => t+n, 0),
+      banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0, comBanco: soma("comBanco"),
       retorno: soma("retorno", comMeta), meta: comMeta.length ? soma("meta", comMeta) : null, projecao: null,
     };
     tot.penetration = temVenda ? div(tot.financiadas, tot.vendas) : null;
@@ -324,13 +362,15 @@ function render(){
   });
 }
 
+function renderGrupo(){
 const metaDoMes = Object.fromEntries((D.metaGrupo||[]).map(g => [g.mes, g.meta]));
 const mesesGrupo = MESES_ORDEM.filter(m => m in metaDoMes || (D.retornoNF||{})[m] != null);
 $("grupo").innerHTML = mesesGrupo.map(m => {
   const v = x => x==null ? DASH : brl.format(x);
   const meta = metaDoMes[m] ?? null, ret = (D.retornoNF||{})[m] ?? null, p = div(ret, meta), s = faixa(p);
   return `<tr><td class="loja">${NOMES_MES[m]}</td><td>${v(meta)}</td><td><b>${v(ret)}</b></td><td class="center">${p==null ? DASH : `<span class="st ${s}">${ICON[s]} ${pct(p)}</span>`}</td></tr>`;
-}).join("");
+}).join("") || `<tr><td colspan="4" class="empty">Sem meta do grupo nem real de retorno na planilha.</td></tr>`;
+}
 
 ["fMes","fLoja","fMeta"].forEach(id => $(id).onchange = render);
 
@@ -381,6 +421,224 @@ $("btnPdf").onclick = async () => {
     st.textContent = "Erro ao gerar o PDF"; console.error(e);
   } finally { $("btnPdf").disabled = false; }
 };
+
+// ---- Atualizar dados: planilha base (baixar / enviar / publicar) ----
+const LIB_XLSX = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+const COLS_MES = [
+  ["ano","Ano"],["mes","Mês"],["loja","Loja"],["vendas","Vendas totais (qtd)"],["financiadas","Financ. interno (qtd)"],
+  ["volume","Volume financ. interno (R$)"],["retornoRel","Retorno F&I gerado (R$)"],["retorno","Retorno total LINX + NBS (R$)"],
+  ["banco","Principal banco"],["bancoQtd","Vendas no principal banco"],["comBanco","Vendas com banco (total)"],
+];
+const NUMERICOS = ["vendas","financiadas","volume","retornoRel","retorno","bancoQtd","comBanco"];
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const msgAtu = (t, cls="") => { $("msgAtu").textContent = t; $("msgAtu").className = "msg " + cls; };
+
+function paraNumero(v){
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return v;
+  let t = String(v).replace(/R\$/i, "").replace(/\s/g, "");
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+  const n = Number(t);
+  if (!isFinite(n)) throw new Error(`valor não numérico: "${v}"`);
+  return n;
+}
+function paraMes(v){
+  if (typeof v === "number" && v >= 1 && v <= 12) return MESES_ORDEM[Math.round(v) - 1];
+  const t = norm(v).toUpperCase().slice(0, 3);
+  return MESES_ORDEM.includes(t) ? t : null;
+}
+function completar(d){
+  d.meses = MESES_ORDEM.filter(m => d.porMes[m]);
+  const lojas = new Set();
+  Object.values(d.porMes).forEach(l => Object.keys(l).forEach(x => lojas.add(x)));
+  Object.entries(d.metas).forEach(([l, v]) => { if (Object.keys(v).length) lojas.add(l); });
+  d.lojas = [...lojas].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  d.parcial = null;
+  return d;
+}
+
+function lerPlanilhaBase(buf){
+  const wb = XLSX.read(buf, {type: "array"});
+  const erros = [], avisos = [];
+  const aba = nome => wb.Sheets[wb.SheetNames.find(n => norm(n) === norm(nome))];
+  const linhasDe = ws => XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: null, blankrows: false});
+  const faltam = ["DADOS_MES","METAS","RETORNO_NF"].filter(n => !aba(n));
+  if (faltam.length) return {erros: [`A planilha não tem as abas: ${faltam.join(", ")}. Use a planilha base baixada nesta página.`], avisos};
+
+  const dados = {ano: null, porMes: {}, metas: {}, metaGrupo: [], retornoNF: {}};
+  // DADOS_MES
+  const lm = linhasDe(aba("DADOS_MES"));
+  const cab = (lm[0] || []).map(norm);
+  const idx = {};
+  COLS_MES.forEach(([k, nome]) => { idx[k] = cab.indexOf(norm(nome)); if (idx[k] < 0) erros.push(`DADOS_MES: falta a coluna “${nome}”.`); });
+  if (erros.length) return {erros, avisos};
+  const anos = {};
+  lm.slice(1).forEach((row, i) => {
+    const n = i + 2;
+    if (!row.some(v => v != null && v !== "")) return;
+    const mes = paraMes(row[idx.mes]), loja = String(row[idx.loja] ?? "").trim().toUpperCase();
+    if (!mes){ erros.push(`DADOS_MES linha ${n}: mês “${row[idx.mes] ?? ""}” não reconhecido (use JAN a DEZ).`); return; }
+    if (!loja){ erros.push(`DADOS_MES linha ${n}: falta o nome da loja.`); return; }
+    const ano = row[idx.ano]; if (ano) anos[ano] = (anos[ano] || 0) + 1;
+    const v = {};
+    for (const k of NUMERICOS){
+      try { v[k] = paraNumero(row[idx[k]]) ?? 0; } catch (e) { erros.push(`DADOS_MES linha ${n}, ${COLS_MES.find(c => c[0]===k)[1]}: ${e.message}.`); v[k] = 0; }
+      if (v[k] < 0) erros.push(`DADOS_MES linha ${n}: ${COLS_MES.find(c => c[0]===k)[1]} negativo.`);
+    }
+    v.banco = String(row[idx.banco] ?? "").trim().toUpperCase() || null;
+    if (v.financiadas > v.vendas) avisos.push(`${nomeLoja(loja)} (${mes}): mais financiamentos internos (${v.financiadas}) que vendas (${v.vendas}).`);
+    if (v.bancoQtd > v.comBanco) avisos.push(`${nomeLoja(loja)} (${mes}): vendas no principal banco maiores que o total com banco.`);
+    if ((dados.porMes[mes] || {})[loja]) avisos.push(`${nomeLoja(loja)} aparece mais de uma vez em ${mes}; valeu a última linha.`);
+    (dados.porMes[mes] = dados.porMes[mes] || {})[loja] = v;
+  });
+  const anoMaisComum = Object.entries(anos).sort((a, b) => b[1] - a[1])[0];
+  dados.ano = anoMaisComum ? Number(anoMaisComum[0]) : D.ano;
+  // METAS
+  const lt = linhasDe(aba("METAS"));
+  const cabM = (lt[0] || []).map(paraMes);
+  let total = null;
+  lt.slice(1).forEach((row, i) => {
+    const loja = String(row[0] ?? "").trim().toUpperCase();
+    if (!loja) return;
+    const vals = {};
+    cabM.forEach((m, c) => { if (!m) return; try { const x = paraNumero(row[c]); if (x) vals[m] = x; } catch (e) { erros.push(`METAS linha ${i + 2}: ${e.message}.`); } });
+    if (loja.startsWith("TOTAL")) total = vals; else dados.metas[loja] = vals;
+  });
+  if (!total){
+    total = {};
+    Object.values(dados.metas).forEach(v => Object.entries(v).forEach(([m, x]) => total[m] = (total[m] || 0) + x));
+    if (Object.keys(total).length) avisos.push("METAS sem linha TOTAL GRUPO: a meta do grupo foi somada das lojas.");
+  }
+  dados.metaGrupo = MESES_ORDEM.filter(m => total[m]).map(m => ({mes: m, meta: total[m]}));
+  // RETORNO_NF
+  linhasDe(aba("RETORNO_NF")).slice(1).forEach((row, i) => {
+    const m = paraMes(row[0]); if (!m) return;
+    try { const x = paraNumero(row[1]); if (x) dados.retornoNF[m] = x; } catch (e) { erros.push(`RETORNO_NF linha ${i + 2}: ${e.message}.`); }
+  });
+  if (!Object.keys(dados.porMes).length) erros.push("DADOS_MES está vazia.");
+  return {dados: completar(dados), erros, avisos};
+}
+
+function montarPlanilhaBase(d){
+  const wb = XLSX.utils.book_new();
+  const leia = [
+    ["PLANILHA BASE — COMPARATIVO F&I"], [],
+    ["Como atualizar", "1) Preencha as abas DADOS_MES, METAS e RETORNO_NF (uma linha por mês e loja em DADOS_MES)."],
+    ["", "2) Salve o arquivo (.xlsx)."],
+    ["", "3) Na página do comparativo, em “Atualizar dados”, clique em “Enviar planilha atualizada”."],
+    ["", "4) Confira a prévia e clique em “Publicar atualização”."], [],
+    ["Regras", "Não mude os nomes das abas nem dos cabeçalhos. Célula vazia = sem dado; meta vazia ou 0 = sem meta."],
+    ["", "A planilha substitui tudo o que a página tem: mantenha nela todos os meses que devem aparecer."], [],
+    ["Aba DADOS_MES", "Vendas, financ. interno, volume e retorno F&I gerado: aba RELATÓRIO do Indicador Diário (colunas C, D, E e G)."],
+    ["", "Retorno total LINX + NBS: LINX RES VEIC VEND FI + NBS REL VENDAS (usado no % atingimento)."],
+    ["", "Principal banco: banco que mais aparece nas vendas (LINX REL VENDAS col. D + NBS REL VENDAS col. E)."],
+    ["Aba METAS", "Meta de retorno por loja e mês (METAS BI 2026). Linha TOTAL GRUPO = meta do grupo."],
+    ["Aba RETORNO_NF", "Real de retorno: Controle de Solicitações de NF, aba Resumo, quadro 4) POR TIPO, linha RETORNO."],
+  ];
+  const wsL = XLSX.utils.aoa_to_sheet(leia); wsL["!cols"] = [{wch: 22}, {wch: 100}];
+  XLSX.utils.book_append_sheet(wb, wsL, "LEIA-ME");
+  const dm = [COLS_MES.map(c => c[1])];
+  MESES_ORDEM.forEach(m => Object.keys(d.porMes[m] || {}).sort().forEach(l => {
+    const v = d.porMes[m][l];
+    dm.push([d.ano, m, l, ...COLS_MES.slice(3).map(([k]) => v[k] ?? null)]);
+  }));
+  const wsD = XLSX.utils.aoa_to_sheet(dm);
+  wsD["!cols"] = [7, 7, 38, 11, 11, 18, 17, 18, 16, 13, 13].map(wch => ({wch}));
+  XLSX.utils.book_append_sheet(wb, wsD, "DADOS_MES");
+  const lojasMeta = [...new Set([...Object.keys(d.metas), ...d.lojas])].sort();
+  const mt = [["Loja", ...MESES_ORDEM]];
+  lojasMeta.forEach(l => mt.push([l, ...MESES_ORDEM.map(m => (d.metas[l] || {})[m] ?? null)]));
+  const tg = Object.fromEntries((d.metaGrupo || []).map(g => [g.mes, g.meta]));
+  mt.push(["TOTAL GRUPO", ...MESES_ORDEM.map(m => tg[m] ?? null)]);
+  const wsM = XLSX.utils.aoa_to_sheet(mt); wsM["!cols"] = [{wch: 38}, ...MESES_ORDEM.map(() => ({wch: 11}))];
+  XLSX.utils.book_append_sheet(wb, wsM, "METAS");
+  const wsR = XLSX.utils.aoa_to_sheet([["Mês", "Real de retorno (R$)"], ...MESES_ORDEM.map(m => [m, (d.retornoNF || {})[m] ?? null])]);
+  wsR["!cols"] = [{wch: 8}, {wch: 20}];
+  XLSX.utils.book_append_sheet(wb, wsR, "RETORNO_NF");
+  return new Blob([XLSX.write(wb, {bookType: "xlsx", type: "array"})], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+
+async function salvarArquivo(nome, blob){
+  if (window.claude && window.claude.use){
+    const dl = await window.claude.use("downloads");
+    if (!dl) return "Download indisponível nesta visualização";
+    try { await dl.save({filename: nome, data: blob}); return "Arquivo salvo"; }
+    catch (e) { return e && e.code === "declined" ? "Download cancelado" : e && e.code === "rate_limited" ? "Aguarde e tente de novo" : "Não foi possível salvar o arquivo"; }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  return "Arquivo salvo";
+}
+
+$("btnBase").onclick = async () => {
+  $("btnBase").disabled = true; msgAtu("Montando a planilha…");
+  try {
+    if (!window.XLSX) await carregar(LIB_XLSX);
+    msgAtu(await salvarArquivo(`BASE_COMPARATIVO_FI ${D.ano}.xlsx`, montarPlanilhaBase(dadosPublicados)));
+  } catch (e) { msgAtu("Não foi possível montar a planilha.", "erro"); console.error(e); }
+  finally { $("btnBase").disabled = false; }
+};
+
+const dadosPublicados = D;
+function aplicar(d, previa){
+  const ultimo = x => x.meses[x.meses.length - 1];
+  if (ultimo(d) !== ultimo(D)) $("fMes").value = ""; // chegou mês novo: abre nele
+  D = d;
+  iniciarFiltros(); renderGrupo(); render();
+  $("faixaPrevia").hidden = !previa;
+}
+
+$("arqBase").onchange = async ev => {
+  const arq = ev.target.files[0]; ev.target.value = "";
+  if (!arq) return;
+  msgAtu("Lendo a planilha…");
+  try {
+    if (!window.XLSX) await carregar(LIB_XLSX);
+    const {dados, erros, avisos} = lerPlanilhaBase(await arq.arrayBuffer());
+    const li = (cls, t) => `<li class="${cls}">${esc(t)}</li>`;
+    if (erros.length){
+      $("previa").hidden = false; $("btnPublicar").hidden = true;
+      $("previaResumo").innerHTML = `<b>${esc(arq.name)}</b> não pode ser publicada. Corrija e envie de novo:<ul>${erros.slice(0, 12).map(t => li("erro", t)).join("")}${erros.length > 12 ? li("erro", `…e mais ${erros.length - 12}.`) : ""}</ul>`;
+      msgAtu(""); return;
+    }
+    aplicar(dados, true);
+    const nLinhas = Object.values(dados.porMes).reduce((t, l) => t + Object.keys(l).length, 0);
+    $("previa").hidden = false; $("btnPublicar").hidden = false;
+    $("previaResumo").innerHTML = `<b>${esc(arq.name)}</b>: ${nLinhas} linhas, ${dados.lojas.length} lojas, meses ${dados.meses.join(", ")}` +
+      (dados.metaGrupo.length ? `; metas ${dados.metaGrupo.map(g => g.mes).join(", ")}` : "; sem metas") +
+      (Object.keys(dados.retornoNF).length ? `; real de retorno ${Object.keys(dados.retornoNF).join(", ")}` : "") +
+      `. A tabela acima já mostra a prévia.` + (avisos.length ? `<ul>${avisos.slice(0, 10).map(t => li("aviso", t)).join("")}</ul>` : "");
+    msgAtu("");
+  } catch (e) { msgAtu("Não consegui ler esse arquivo. Envie a planilha base em .xlsx.", "erro"); console.error(e); }
+};
+
+$("btnDescartar").onclick = () => { aplicar(dadosPublicados, false); $("previa").hidden = true; msgAtu("Prévia descartada."); };
+
+// a página publicada é o esqueleto do claude.ai + o modelo desta página com os dados embutidos
+const ESQ_INI = '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>';
+const ESQ_FIM = '</body></html>';
+const paraScript = v => JSON.stringify(v).replace(/<\//g, "<\\/").replace(/<!--/g, "<\\!--");
+const montarPagina = d => ESQ_INI + "\n" + FONTE.replace(/\/\*__(DADOS|FONTE)__\*\/null/g, (m, k) => k === "DADOS" ? paraScript(d) : paraScript(FONTE)) + "\n" + ESQ_FIM;
+
+$("btnPublicar").onclick = async () => {
+  $("btnPublicar").disabled = true; msgAtu("Publicando…");
+  try {
+    const art = window.claude && window.claude.use ? await window.claude.use("artifact") : null;
+    if (!art){ msgAtu("Publicar só funciona com a página aberta no claude.ai.", "erro"); return; }
+    await art.publish(montarPagina(D));
+    msgAtu("Publicado. A página vai recarregar com os dados novos.", "ok");
+  } catch (e) {
+    const c = e && e.code;
+    msgAtu(c === "not_writer" || c === "not_granted" ? "Só quem tem permissão de edição nesta página pode publicar."
+      : c === "conflict" ? "Outra versão foi publicada agora há pouco; a página vai recarregar. Envie a planilha de novo depois."
+      : c === "too_large" ? "A planilha ficou grande demais para publicar."
+      : "Não foi possível publicar. Tente de novo.", "erro");
+    console.error(e);
+  } finally { $("btnPublicar").disabled = false; }
+};
+
+iniciarFiltros();
+renderGrupo();
 render();
 </script>
 

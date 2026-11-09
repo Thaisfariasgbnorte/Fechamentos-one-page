@@ -38,32 +38,40 @@ visão escolhidos. Escolhendo uma loja, todas as tabelas mostram só aquela loja
 
 ## Comparativo entre lojas (F&I)
 
-`comparativo_financiamento.html` compara as lojas mês a mês em faturamento, % aprovação, penetration,
-principal banco, % atingimento da meta e retorno médio, só com números das planilhas de F&I:
+Página publicada: https://claude.ai/artifact/VdxkL4QVbPLk9HwsPmrkZY
+
+`comparativo_financiamento.html` compara as lojas mês a mês: faturamento (volume financ. interno), Var. MA,
+% aprovação, penetration, principal banco, % atingimento da meta de retorno e retorno médio, mais a meta
+de retorno do grupo contra o real de retorno das notas fiscais. Tem botão **Gerar PDF** (A4 paisagem).
+
+### Atualizar pela própria página (sem rodar nada)
+
+1. Em **Atualizar dados**, clique em **Baixar planilha base** (vem com os dados atuais).
+2. Atualize as abas `DADOS_MES`, `METAS` e `RETORNO_NF` no Excel e salve.
+3. Clique em **Enviar planilha atualizada**: a tabela mostra a prévia e a página aponta erros.
+4. Clique em **Publicar atualização**: o mesmo link passa a mostrar os dados novos para todos
+   (só quem tem permissão de edição na página consegue publicar).
+
+A aba LEIA-ME da planilha base diz de onde vem cada coluna (Indicador Diário F&I, METAS BI 2026 e
+Controle de Solicitações de NF).
+
+### Atualizar pelo gerador
 
 ```bash
+# a partir da planilha base
+python3 gerar_comparativo_fi.py BASE_COMPARATIVO_FI.xlsx comparativo_financiamento.html
+
+# a partir das planilhas originais (também grava BASE_COMPARATIVO_FI.xlsx preenchida)
 python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx METAS_BI_2026.xlsx \
     CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx comparativo_financiamento.html
 ```
 
-- **Faturamento**: "Volume Financ. Interno (R$)" da aba RELATÓRIO do Indicador Diário.
-- **Penetration**: "Positivação F&I (%)" da aba RELATÓRIO do Indicador Diário.
-  A aba mostra um mês por vez; nos outros meses vale a mesma conta aplicada às bases LINX e NBS.
-- **Principal banco**: banco que mais aparece em LINX REL VENDAS col. D e NBS REL VENDAS col. E
-  (loja = col. K / col. M "estoque tipo"); ignora À VISTA, vazio e EXTERNO.
-- **Retorno médio**: "Retorno F&I Gerado (R$)" (col. G) ÷ "Financ. Interno (Qtd)" (col. D) da aba RELATÓRIO;
-  nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI.
-- **% atingimento meta**: retorno ÷ meta da loja (METAS BI 2026, set a dez; meta 0 = sem meta).
-- **% aprovação**: nenhuma planilha tem fichas enviadas/aprovadas, então a coluna fica "sem dado".
-- **Var. MA**: faturamento contra o mês anterior, com seta (▲ subiu, ▼ caiu).
-- **Gerar PDF**: botão no topo; gera 2 páginas A4 paisagem (comparativo e meta do grupo) do mês escolhido.
-- Publicado em https://claude.ai/artifact/VdxkL4QVbPLk9HwsPmrkZY (o arquivo gerado já é a página publicada).
-- Embaixo, a meta do grupo (total da METAS BI 2026) e o real de retorno
-  (linha RETORNO do quadro "4) POR TIPO" da aba Resumo do controle de notas fiscais).
+O arquivo gerado já está no formato de publicação (sem `<html>`/`<head>`): ele leva uma cópia do
+`template_comparativo_fi.html` para conseguir se republicar com dados novos.
 
 ## Arquivos
 
 - `gerar_one_page.py` — lê a planilha e grava o HTML.
 - `template.html` — layout da página (os dados entram no lugar de `/*__DADOS__*/null`).
 - `index.html` — página gerada.
-- `gerar_comparativo_fi.py` + `template_comparativo_fi.html` — geram `comparativo_financiamento.html` (comparativo de F&I entre lojas).
+- `gerar_comparativo_fi.py` + `template_comparativo_fi.html` — geram `comparativo_financiamento.html` (comparativo de F&I entre lojas) e a planilha base `BASE_COMPARATIVO_FI.xlsx`.
