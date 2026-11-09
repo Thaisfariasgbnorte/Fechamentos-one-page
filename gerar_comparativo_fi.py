@@ -16,7 +16,7 @@ De onde vem cada coluna (por loja = coluna "estoque tipo" das bases):
 - Principal banco .... banco que mais aparece no mês: LINX REL VENDAS col D (Banco) e NBS REL VENDAS
                        col E (BANCO), loja = col K / col M ("estoque tipo"); ignora À VISTA, vazio e EXTERNO
 - Retorno ............ LINX RES VEIC VEND FI "Retorno" + NBS REL VENDAS "RETORNO6"
-- Retorno médio ...... "Retorno F&I Gerado (R$)" (col G) ÷ "Vendas Totais (Qtd)" (col C) da aba RELATÓRIO;
+- Retorno médio ...... "Retorno F&I Gerado (R$)" (col G) ÷ "Financ. Interno (Qtd)" (col D) da aba RELATÓRIO;
                        nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI (é o que a col G soma)
 - % atingimento meta . retorno ÷ meta da loja (aba Metas do Indicador de Metas; nov = aba Painel)
 - % aprovação ........ as planilhas não têm fichas enviadas/aprovadas -> fica "—"
