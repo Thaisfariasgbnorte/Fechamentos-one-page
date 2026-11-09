@@ -181,7 +181,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
         <li>Todos os números vêm da <b>planilha base</b> (abas DADOS_MES, METAS e RETORNO_NF), preenchida a partir do Indicador Diário F&amp;I, da METAS BI 2026 e do Controle de Solicitações de NF.</li>
         <li><b>Faturamento</b>: “Volume financ. interno (R$)” (aba RELATÓRIO do Indicador Diário, coluna E).</li>
         <li><b>Var. MA</b>: faturamento contra o mês anterior (&#9650; subiu, &#9660; caiu); embaixo, o faturamento do mês anterior.</li>
-        <li><b>% aprovação</b>: fichas aprovadas ÷ fichas passadas aos bancos (relatório Fichas Aprovadas x Recusadas; cada ficha enviada a um banco conta uma vez). Fichas de teste (TESTE FANDI) e rascunhos não entram. Loja ou mês sem fichas aparece “sem dado”.</li>
+        <li><b>% aprovação</b>: clientes aprovados ÷ clientes com ficha passada (relatório Fichas Aprovadas x Recusadas). Cada cliente conta uma vez por loja e mês, mesmo que a ficha tenha ido a vários bancos, e conta como aprovado se pelo menos um banco aprovou. Fichas de teste (TESTE FANDI) e rascunhos não entram. Loja ou mês sem fichas aparece “sem dado”.</li>
         <li><b>Penetration</b>: financiamentos internos ÷ vendas totais (Positivação F&amp;I da aba RELATÓRIO).</li>
         <li><b>Principal banco</b>: banco que mais aparece nas vendas da loja (LINX REL VENDAS col. D e NBS REL VENDAS col. E); embaixo, quantas vendas foram nele do total com banco. No consolidado, soma as vendas do principal banco de cada loja.</li>
         <li><b>% atingimento meta</b>: retorno total LINX + NBS da loja ÷ meta de retorno da loja (aba METAS). Meta vazia ou 0 aparece “sem meta”.</li>
@@ -272,7 +272,7 @@ const COLS = [
   {k:"nome", t:"Loja", txt:true},
   {k:"faturamento", t:"Faturamento", tip:"Volume Financ. Interno (R$) — aba RELATÓRIO", f:r => r.faturamento==null ? DASH : `<b>${brl.format(r.faturamento)}</b>`},
   {k:"varMA", t:"Var. MA", tip:"Faturamento contra o mês anterior", f:celVar},
-  {k:"aprovacao", t:"% aprovação", tip:"Fichas aprovadas ÷ fichas passadas aos bancos (sem testes)", f:r => r.aprovacao==null ? '<span class="na">sem dado</span>' : `<span class="chip">${pct(r.aprovacao)}</span><small>${r.aprovadas} de ${r.fichas} fichas</small>`},
+  {k:"aprovacao", t:"% aprovação", tip:"Clientes aprovados ÷ clientes com ficha (cada cliente conta 1 vez)", f:r => r.aprovacao==null ? '<span class="na">sem dado</span>' : `<span class="chip">${pct(r.aprovacao)}</span><small>${r.aprovadas} de ${r.fichas} clientes</small>`},
   {k:"penetration", t:"Penetration", tip:"Positivação F&I (%) — aba RELATÓRIO", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
   {k:"banco", t:"Principal banco", txt:true, tip:"Banco que mais aparece nas vendas da loja", f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.comBanco} vendas com banco</small>` : DASH},
   {k:"atingimento", t:"% atingimento meta", center:true, f:r => {
@@ -542,7 +542,7 @@ function montarPlanilhaBase(d){
     ["Aba DADOS_MES", "Vendas, financ. interno, volume e retorno F&I gerado: aba RELATÓRIO do Indicador Diário (colunas C, D, E e G)."],
     ["", "Retorno total LINX + NBS: LINX RES VEIC VEND FI + NBS REL VENDAS (usado no % atingimento)."],
     ["", "Principal banco: banco que mais aparece nas vendas (LINX REL VENDAS col. D + NBS REL VENDAS col. E)."],
-    ["", "Fichas passadas e aprovadas: relatório Fichas Aprovadas x Recusadas, sem testes (TESTE FANDI) e sem rascunhos. Vazio = sem dado."],
+    ["", "Fichas passadas e aprovadas: CLIENTES (cada um 1 vez por loja e mês; aprovado se algum banco aprovou), sem testes (TESTE FANDI) e sem rascunhos. Vazio = sem dado."],
     ["Aba METAS", "Meta de retorno por loja e mês (METAS BI 2026). Linha TOTAL GRUPO = meta do grupo."],
     ["Aba RETORNO_NF", "Real de retorno: Controle de Solicitações de NF, aba Resumo, quadro 4) POR TIPO, linha RETORNO."],
   ];

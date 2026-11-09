@@ -25,7 +25,8 @@ De onde vem cada coluna (por loja = coluna "estoque tipo" das bases):
 - % atingimento meta . retorno ÷ meta da loja (METAS BI 2026; meta 0 = sem meta)
 - Meta do grupo ...... linha de total da METAS BI 2026 x real de retorno (aba Resumo do controle de NFs)
 - % aprovação ........ fichas aprovadas ÷ fichas passadas (Fichas Aprovadas x Recusadas, aba Dados;
-                       sem testes TESTE FANDI e sem rascunhos); loja/mês sem fichas = "sem dado"
+                       sem testes TESTE FANDI e sem rascunhos); cada cliente conta 1 vez por loja e mês
+                       e é aprovado se teve ao menos uma ficha aprovada; loja/mês sem fichas = "sem dado"
 """
 import json
 import sys
@@ -236,8 +237,8 @@ COLS_MES = [  # (chave, cabeçalho, de onde vem no Indicador Diário)
     ("banco", "Principal banco", "Banco que mais aparece (LINX REL VENDAS col. D + NBS REL VENDAS col. E)"),
     ("bancoQtd", "Vendas no principal banco", "Quantas vendas da loja foram nesse banco"),
     ("comBanco", "Vendas com banco (total)", "Todas as vendas da loja com banco (sem À VISTA)"),
-    ("fichas", "Fichas passadas (qtd)", "Fichas Aprovadas x Recusadas: fichas enviadas aos bancos, sem testes (TESTE FANDI) e sem rascunhos"),
-    ("aprovadas", "Fichas aprovadas (qtd)", "Fichas Aprovadas x Recusadas: fichas com desfecho aprovado — vira o % aprovação"),
+    ("fichas", "Fichas passadas (qtd)", "Fichas Aprovadas x Recusadas: CLIENTES com ficha enviada no mês (cada cliente 1 vez), sem testes (TESTE FANDI) e sem rascunhos"),
+    ("aprovadas", "Fichas aprovadas (qtd)", "Fichas Aprovadas x Recusadas: CLIENTES com pelo menos 1 ficha aprovada no mês — vira o % aprovação"),
 ]
 OPCIONAIS = {"fichas", "aprovadas"}  # vazio = sem dado (não vira 0)
 
@@ -252,9 +253,11 @@ LOJA_FICHAS = {
 
 def ler_fichas(xlsx):
     """Fichas Aprovadas x Recusadas, aba Dados: 1 linha = 1 ficha enviada a 1 banco.
+    Conta CLIENTES, não fichas: cada cliente entra 1 vez por loja e mês, e conta como aprovado
+    se teve pelo menos uma ficha aprovada em algum banco.
     Fora: testes (coluna "Teste?" = Sim ou cliente "TESTE FANDI") e rascunhos (não enviados)."""
     ws = openpyxl.load_workbook(xlsx, data_only=True)["Dados"]
-    out = defaultdict(lambda: defaultdict(lambda: {"fichas": 0, "aprovadas": 0}))
+    clientes = defaultdict(lambda: defaultdict(dict))  # mes -> loja -> cliente -> aprovado?
     sem_loja = Counter()
     for r in linhas(ws):
         teste = str(r.get("Teste?") or "").strip().upper().startswith("S") or "TESTE" in str(r.get("Cliente") or "").upper()
@@ -269,12 +272,13 @@ def ler_fichas(xlsx):
         if not loja:
             sem_loja[loja_txt] += 1
             continue
-        a = out[MESES[data.month - 1]][loja]
-        a["fichas"] += 1
-        a["aprovadas"] += grupo.startswith("APROV")
+        cliente = " ".join(str(r.get("Cliente") or r.get("Código")).upper().split())
+        c = clientes[MESES[data.month - 1]][loja]
+        c[cliente] = c.get(cliente, False) or grupo.startswith("APROV")
     for l, n in sem_loja.items():
         print(f"AVISO: loja {l!r} das fichas sem correspondência ({n} fichas ignoradas)")
-    return out
+    return {mes: {loja: {"fichas": len(c), "aprovadas": sum(c.values())} for loja, c in lojas.items()}
+            for mes, lojas in clientes.items()}
 
 
 def escrever_base(dados, caminho):
