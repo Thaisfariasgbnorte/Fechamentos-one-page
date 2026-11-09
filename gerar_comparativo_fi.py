@@ -4,9 +4,9 @@ Uso:
     # a partir da planilha base (o mesmo arquivo que se envia pela página em "Atualizar dados")
     python3 gerar_comparativo_fi.py BASE_COMPARATIVO_FI.xlsx [saida.html]
 
-    # a partir das planilhas originais (também grava BASE_COMPARATIVO_FI.xlsx preenchida)
+    # a partir das planilhas originais, em qualquer ordem (também grava BASE_COMPARATIVO_FI.xlsx preenchida)
     python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI.xlsx METAS_BI_2026.xlsx \
-        CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx [saida.html]
+        CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx [Fichas_Aprovadas_x_Recusadas.xlsx] [saida.html]
 
 Lê só os valores já calculados (salve as planilhas no Excel antes de rodar).
 Nenhum número é inventado: o que não existe nas planilhas aparece como "—" na página.
@@ -24,7 +24,8 @@ De onde vem cada coluna (por loja = coluna "estoque tipo" das bases):
                        nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI (é o que a col G soma)
 - % atingimento meta . retorno ÷ meta da loja (METAS BI 2026; meta 0 = sem meta)
 - Meta do grupo ...... linha de total da METAS BI 2026 x real de retorno (aba Resumo do controle de NFs)
-- % aprovação ........ as planilhas não têm fichas enviadas/aprovadas -> fica "—"
+- % aprovação ........ fichas aprovadas ÷ fichas passadas (Fichas Aprovadas x Recusadas, aba Dados;
+                       sem testes TESTE FANDI e sem rascunhos); loja/mês sem fichas = "sem dado"
 """
 import json
 import sys
@@ -180,7 +181,7 @@ def ler_relatorio(xlsx):
 #   metas[LOJA][MES] = meta de retorno;  metaGrupo = [{mes, meta}];  retornoNF[MES] = real de retorno
 # ---------------------------------------------------------------------------
 
-def dados_das_planilhas(diario, metas_bi, notas):
+def dados_das_planilhas(diario, metas_bi, notas, fichas=None):
     por_mes, ano = ler_vendas(diario)
     mes_rel, rel = ler_relatorio(diario)
     if mes_rel:
@@ -198,6 +199,16 @@ def dados_das_planilhas(diario, metas_bi, notas):
             bancos = a.pop("bancos")
             top = next(iter(bancos.items()), (None, 0))
             a.update(banco=top[0], bancoQtd=top[1], comBanco=sum(bancos.values()))
+    for lojas in por_mes.values():
+        for a in lojas.values():
+            a.update(fichas=None, aprovadas=None)
+    if fichas:
+        for mes, lojas in ler_fichas(fichas).items():
+            for loja, f in lojas.items():
+                a = por_mes.setdefault(mes, {}).setdefault(loja, {
+                    "vendas": 0, "financiadas": 0, "volume": 0, "retorno": 0, "retornoRel": 0,
+                    "banco": None, "bancoQtd": 0, "comBanco": 0})
+                a.update(f)
     metas, meta_grupo = ler_metas_bi(metas_bi)
     return {"ano": ano, "porMes": por_mes, "metas": metas, "metaGrupo": meta_grupo,
             "retornoNF": ler_retorno_nf(notas)}
@@ -225,7 +236,45 @@ COLS_MES = [  # (chave, cabeçalho, de onde vem no Indicador Diário)
     ("banco", "Principal banco", "Banco que mais aparece (LINX REL VENDAS col. D + NBS REL VENDAS col. E)"),
     ("bancoQtd", "Vendas no principal banco", "Quantas vendas da loja foram nesse banco"),
     ("comBanco", "Vendas com banco (total)", "Todas as vendas da loja com banco (sem À VISTA)"),
+    ("fichas", "Fichas passadas (qtd)", "Fichas Aprovadas x Recusadas: fichas enviadas aos bancos, sem testes (TESTE FANDI) e sem rascunhos"),
+    ("aprovadas", "Fichas aprovadas (qtd)", "Fichas Aprovadas x Recusadas: fichas com desfecho aprovado — vira o % aprovação"),
 ]
+OPCIONAIS = {"fichas", "aprovadas"}  # vazio = sem dado (não vira 0)
+
+# loja do relatório de fichas -> loja das bases de vendas
+LOJA_FICHAS = {
+    "MIT | MANAUS": "MITSUBISHI MANAUS", "MIT | BOA VISTA": "MITSUBISHI BOA VISTA",
+    "VOLVO | MANAUS": "VOLVO MANAUS", "VOLVO | BELÉM": "VOLVO BELEM", "VOLVO | BELEM": "VOLVO BELEM",
+    "MG | MANAUS": "MG MANAUS", "OMODA | BOA VISTA": "OMODA BOA VISTA", "GWM | BOA VISTA": "GWM BOA VISTA",
+    "OMODA | IMPERATRIZ": "OMODA IMPERATRIZ", "GB SELECT": "GB SELECT (MANAUS, BOA VISTA E BELÉM)",
+}
+
+
+def ler_fichas(xlsx):
+    """Fichas Aprovadas x Recusadas, aba Dados: 1 linha = 1 ficha enviada a 1 banco.
+    Fora: testes (coluna "Teste?" = Sim ou cliente "TESTE FANDI") e rascunhos (não enviados)."""
+    ws = openpyxl.load_workbook(xlsx, data_only=True)["Dados"]
+    out = defaultdict(lambda: defaultdict(lambda: {"fichas": 0, "aprovadas": 0}))
+    sem_loja = Counter()
+    for r in linhas(ws):
+        teste = str(r.get("Teste?") or "").strip().upper().startswith("S") or "TESTE" in str(r.get("Cliente") or "").upper()
+        grupo = str(r.get("Grupo") or "").strip().upper()
+        if teste or grupo == "RASCUNHO" or not grupo:
+            continue
+        data = r.get("Mês") or r.get("Data inclusão")
+        if not hasattr(data, "month"):
+            continue
+        loja_txt = str(r.get("Loja") or "").strip().upper()
+        loja = LOJA_FICHAS.get(loja_txt)
+        if not loja:
+            sem_loja[loja_txt] += 1
+            continue
+        a = out[MESES[data.month - 1]][loja]
+        a["fichas"] += 1
+        a["aprovadas"] += grupo.startswith("APROV")
+    for l, n in sem_loja.items():
+        print(f"AVISO: loja {l!r} das fichas sem correspondência ({n} fichas ignoradas)")
+    return out
 
 
 def escrever_base(dados, caminho):
@@ -266,6 +315,7 @@ def escrever_base(dados, caminho):
         ("Aba RETORNO_NF", "Real de retorno do mês: Controle de Solicitações de NF, aba Resumo, quadro 4) POR TIPO, linha RETORNO."),
         ("", ""),
         ("Como a página calcula", "Penetration = Financ. interno ÷ Vendas totais. Retorno médio = Retorno F&I gerado ÷ Financ. interno."),
+        ("", "% aprovação = Fichas aprovadas ÷ Fichas passadas (vazio = sem dado)."),
         ("", "% atingimento = Retorno total LINX + NBS ÷ meta da loja. Var. MA = Volume financ. interno contra o mês anterior."),
     ]
     for a, b in linhas_leia:
@@ -275,7 +325,7 @@ def escrever_base(dados, caminho):
         ws.cell(r, 1).font = Font(bold=True)
 
     ws = wb.create_sheet("DADOS_MES")
-    cabecalho(ws, [n for _, n, _ in COLS_MES], [7, 7, 38, 11, 11, 18, 17, 18, 16, 13, 13])
+    cabecalho(ws, [n for _, n, _ in COLS_MES], [7, 7, 38, 11, 11, 18, 17, 18, 16, 13, 13, 12, 12])
     for mes in MESES:
         for loja in sorted(dados["porMes"].get(mes, {})):
             v = dados["porMes"][mes][loja]
@@ -339,6 +389,9 @@ def ler_base(caminho):
     idx = {}
     for k, nome, _ in COLS_MES:
         if _norm(nome) not in cab:
+            if k in OPCIONAIS:
+                idx[k] = None
+                continue
             sys.exit(f"DADOS_MES sem a coluna {nome!r}")
         idx[k] = cab.index(_norm(nome))
     por_mes, anos = {}, Counter()
@@ -353,6 +406,7 @@ def ler_base(caminho):
             anos[int(_num(row[idx["ano"]]))] += 1
         v = {k: _num(row[idx[k]]) or 0 for k in ("vendas", "financiadas", "volume", "retornoRel", "retorno",
                                                     "bancoQtd", "comBanco")}
+        v.update({k: (_num(row[idx[k]]) if idx[k] is not None else None) for k in OPCIONAIS})
         v["banco"] = str(row[idx["banco"]] or "").strip().upper() or None
         por_mes.setdefault(mes, {})[loja] = v
     metas, grupo = {}, []
@@ -402,8 +456,18 @@ def main(args):
     saida = next((a for a in args if a.lower().endswith(".html")), "comparativo_financiamento.html")
     if len(xlsx) == 1:
         dados = completar(ler_base(xlsx[0]))
-    elif len(xlsx) == 3:
-        dados = completar(dados_das_planilhas(*xlsx))
+    elif len(xlsx) in (3, 4):
+        papeis = {}
+        for x in xlsx:
+            abas = set(openpyxl.load_workbook(x, read_only=True).sheetnames)
+            papel = ("diario" if "RELATÓRIO" in abas else "notas" if "Resumo" in abas and "Controle" in abas
+                     else "fichas" if "Dados" in abas and "Mapa" in abas else "metas")
+            if papel in papeis:
+                sys.exit(f"Duas planilhas parecem ser {papel}: {papeis[papel]} e {x}")
+            papeis[papel] = x
+        if not {"diario", "metas", "notas"} <= set(papeis):
+            sys.exit("Preciso do Indicador Diário, da METAS BI e do Controle de NFs (e, opcional, das Fichas).")
+        dados = completar(dados_das_planilhas(papeis["diario"], papeis["metas"], papeis["notas"], papeis.get("fichas")))
         base = Path(saida).with_name("BASE_COMPARATIVO_FI.xlsx")
         escrever_base(dados, base)
         print(f"OK: {base}  (planilha base preenchida)")

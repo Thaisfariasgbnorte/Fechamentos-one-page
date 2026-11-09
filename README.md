@@ -63,8 +63,11 @@ python3 gerar_comparativo_fi.py BASE_COMPARATIVO_FI.xlsx comparativo_financiamen
 
 # a partir das planilhas originais (também grava BASE_COMPARATIVO_FI.xlsx preenchida)
 python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx METAS_BI_2026.xlsx \
-    CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx comparativo_financiamento.html
+    CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx Fichas_Aprovadas_x_Recusadas_por_Loja.xlsx comparativo_financiamento.html
 ```
+
+As planilhas originais podem vir em qualquer ordem (o gerador reconhece cada uma pelas abas).
+**% aprovação** = fichas aprovadas ÷ fichas passadas (aba Dados das Fichas, sem testes TESTE FANDI e sem rascunhos).
 
 O arquivo gerado já está no formato de publicação (sem `<html>`/`<head>`): ele leva uma cópia do
 `template_comparativo_fi.html` para conseguir se republicar com dados novos.

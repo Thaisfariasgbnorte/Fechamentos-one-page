@@ -181,7 +181,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
         <li>Todos os números vêm da <b>planilha base</b> (abas DADOS_MES, METAS e RETORNO_NF), preenchida a partir do Indicador Diário F&amp;I, da METAS BI 2026 e do Controle de Solicitações de NF.</li>
         <li><b>Faturamento</b>: “Volume financ. interno (R$)” (aba RELATÓRIO do Indicador Diário, coluna E).</li>
         <li><b>Var. MA</b>: faturamento contra o mês anterior (&#9650; subiu, &#9660; caiu); embaixo, o faturamento do mês anterior.</li>
-        <li><b>% aprovação</b>: nenhuma das planilhas traz fichas enviadas e aprovadas pelos bancos, então a coluna fica vazia até esse dado existir.</li>
+        <li><b>% aprovação</b>: fichas aprovadas ÷ fichas passadas aos bancos (relatório Fichas Aprovadas x Recusadas; cada ficha enviada a um banco conta uma vez). Fichas de teste (TESTE FANDI) e rascunhos não entram. Loja ou mês sem fichas aparece “sem dado”.</li>
         <li><b>Penetration</b>: financiamentos internos ÷ vendas totais (Positivação F&amp;I da aba RELATÓRIO).</li>
         <li><b>Principal banco</b>: banco que mais aparece nas vendas da loja (LINX REL VENDAS col. D e NBS REL VENDAS col. E); embaixo, quantas vendas foram nele do total com banco. No consolidado, soma as vendas do principal banco de cada loja.</li>
         <li><b>% atingimento meta</b>: retorno total LINX + NBS da loja ÷ meta de retorno da loja (aba METAS). Meta vazia ou 0 aparece “sem meta”.</li>
@@ -236,7 +236,8 @@ function linha(loja, mes){
     loja, nome: nomeLoja(loja),
     faturamento: v ? v.volume : null,
     ...varMes(loja, mes, v),
-    aprovacao: null,
+    fichas: v && v.fichas != null ? v.fichas : null, aprovadas: v && v.aprovadas != null ? v.aprovadas : null,
+    aprovacao: v && v.fichas ? v.aprovadas / v.fichas : null,
     vendas: v ? v.vendas : null, financiadas: v ? v.financiadas : null,
     penetration: v ? div(v.financiadas, v.vendas) ?? (v.vendas ? 0 : null) : null,
     banco: v && v.banco ? v.banco : null, bancoQtd: v ? v.bancoQtd || 0 : 0, comBanco: v ? v.comBanco || 0 : 0,
@@ -271,7 +272,7 @@ const COLS = [
   {k:"nome", t:"Loja", txt:true},
   {k:"faturamento", t:"Faturamento", tip:"Volume Financ. Interno (R$) — aba RELATÓRIO", f:r => r.faturamento==null ? DASH : `<b>${brl.format(r.faturamento)}</b>`},
   {k:"varMA", t:"Var. MA", tip:"Faturamento contra o mês anterior", f:celVar},
-  {k:"aprovacao", t:"% aprovação", f:() => '<span class="na">sem dado</span>'},
+  {k:"aprovacao", t:"% aprovação", tip:"Fichas aprovadas ÷ fichas passadas aos bancos (sem testes)", f:r => r.aprovacao==null ? '<span class="na">sem dado</span>' : `<span class="chip">${pct(r.aprovacao)}</span><small>${r.aprovadas} de ${r.fichas} fichas</small>`},
   {k:"penetration", t:"Penetration", tip:"Positivação F&I (%) — aba RELATÓRIO", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
   {k:"banco", t:"Principal banco", txt:true, tip:"Banco que mais aparece nas vendas da loja", f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.comBanco} vendas com banco</small>` : DASH},
   {k:"atingimento", t:"% atingimento meta", center:true, f:r => {
@@ -345,6 +346,9 @@ function render(){
       retorno: soma("retorno", comMeta), meta: comMeta.length ? soma("meta", comMeta) : null, projecao: null,
     };
     tot.penetration = temVenda ? div(tot.financiadas, tot.vendas) : null;
+    const comFicha = rows.filter(r => r.fichas);
+    tot.fichas = comFicha.length ? soma("fichas", comFicha) : null; tot.aprovadas = comFicha.length ? soma("aprovadas", comFicha) : null;
+    tot.aprovacao = div(tot.aprovadas, tot.fichas);
     const comAnt = rows.filter(r => r.fatAnt != null);
     tot.mesAnt = mesAnterior(mes);
     tot.fatAnt = comAnt.length ? soma("fatAnt", comAnt) : null;
@@ -428,7 +432,9 @@ const COLS_MES = [
   ["ano","Ano"],["mes","Mês"],["loja","Loja"],["vendas","Vendas totais (qtd)"],["financiadas","Financ. interno (qtd)"],
   ["volume","Volume financ. interno (R$)"],["retornoRel","Retorno F&I gerado (R$)"],["retorno","Retorno total LINX + NBS (R$)"],
   ["banco","Principal banco"],["bancoQtd","Vendas no principal banco"],["comBanco","Vendas com banco (total)"],
+  ["fichas","Fichas passadas (qtd)"],["aprovadas","Fichas aprovadas (qtd)"],
 ];
+const OPCIONAIS = ["fichas","aprovadas"]; // vazio = sem dado
 const NUMERICOS = ["vendas","financiadas","volume","retornoRel","retorno","bancoQtd","comBanco"];
 const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const msgAtu = (t, cls="") => { $("msgAtu").textContent = t; $("msgAtu").className = "msg " + cls; };
@@ -470,7 +476,7 @@ function lerPlanilhaBase(buf){
   const lm = linhasDe(aba("DADOS_MES"));
   const cab = (lm[0] || []).map(norm);
   const idx = {};
-  COLS_MES.forEach(([k, nome]) => { idx[k] = cab.indexOf(norm(nome)); if (idx[k] < 0) erros.push(`DADOS_MES: falta a coluna “${nome}”.`); });
+  COLS_MES.forEach(([k, nome]) => { idx[k] = cab.indexOf(norm(nome)); if (idx[k] < 0 && !OPCIONAIS.includes(k)) erros.push(`DADOS_MES: falta a coluna “${nome}”.`); });
   if (erros.length) return {erros, avisos};
   const anos = {};
   lm.slice(1).forEach((row, i) => {
@@ -485,6 +491,10 @@ function lerPlanilhaBase(buf){
       try { v[k] = paraNumero(row[idx[k]]) ?? 0; } catch (e) { erros.push(`DADOS_MES linha ${n}, ${COLS_MES.find(c => c[0]===k)[1]}: ${e.message}.`); v[k] = 0; }
       if (v[k] < 0) erros.push(`DADOS_MES linha ${n}: ${COLS_MES.find(c => c[0]===k)[1]} negativo.`);
     }
+    for (const k of OPCIONAIS){
+      try { v[k] = idx[k] < 0 ? null : paraNumero(row[idx[k]]); } catch (e) { erros.push(`DADOS_MES linha ${n}, ${COLS_MES.find(c => c[0]===k)[1]}: ${e.message}.`); v[k] = null; }
+    }
+    if (v.aprovadas != null && v.fichas != null && v.aprovadas > v.fichas) erros.push(`DADOS_MES linha ${n}: mais fichas aprovadas que passadas.`);
     v.banco = String(row[idx.banco] ?? "").trim().toUpperCase() || null;
     if (v.financiadas > v.vendas) avisos.push(`${nomeLoja(loja)} (${mes}): mais financiamentos internos (${v.financiadas}) que vendas (${v.vendas}).`);
     if (v.bancoQtd > v.comBanco) avisos.push(`${nomeLoja(loja)} (${mes}): vendas no principal banco maiores que o total com banco.`);
@@ -532,6 +542,7 @@ function montarPlanilhaBase(d){
     ["Aba DADOS_MES", "Vendas, financ. interno, volume e retorno F&I gerado: aba RELATÓRIO do Indicador Diário (colunas C, D, E e G)."],
     ["", "Retorno total LINX + NBS: LINX RES VEIC VEND FI + NBS REL VENDAS (usado no % atingimento)."],
     ["", "Principal banco: banco que mais aparece nas vendas (LINX REL VENDAS col. D + NBS REL VENDAS col. E)."],
+    ["", "Fichas passadas e aprovadas: relatório Fichas Aprovadas x Recusadas, sem testes (TESTE FANDI) e sem rascunhos. Vazio = sem dado."],
     ["Aba METAS", "Meta de retorno por loja e mês (METAS BI 2026). Linha TOTAL GRUPO = meta do grupo."],
     ["Aba RETORNO_NF", "Real de retorno: Controle de Solicitações de NF, aba Resumo, quadro 4) POR TIPO, linha RETORNO."],
   ];
@@ -543,7 +554,7 @@ function montarPlanilhaBase(d){
     dm.push([d.ano, m, l, ...COLS_MES.slice(3).map(([k]) => v[k] ?? null)]);
   }));
   const wsD = XLSX.utils.aoa_to_sheet(dm);
-  wsD["!cols"] = [7, 7, 38, 11, 11, 18, 17, 18, 16, 13, 13].map(wch => ({wch}));
+  wsD["!cols"] = [7, 7, 38, 11, 11, 18, 17, 18, 16, 13, 13, 12, 12].map(wch => ({wch}));
   XLSX.utils.book_append_sheet(wb, wsD, "DADOS_MES");
   const lojasMeta = [...new Set([...Object.keys(d.metas), ...d.lojas])].sort();
   const mt = [["Loja", ...MESES_ORDEM]];
