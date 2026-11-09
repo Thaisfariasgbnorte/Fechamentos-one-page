@@ -38,16 +38,23 @@ visão escolhidos. Escolhendo uma loja, todas as tabelas mostram só aquela loja
 
 ## Comparativo entre lojas (F&I)
 
-`comparativo_financiamento.html` compara as lojas em faturamento, % aprovação, penetration,
-principal banco, % atingimento da meta e retorno médio, com filtro por loja e por situação da meta,
-ordenação por coluna e linha de consolidado. Vem com **dados de exemplo**: troque a lista `LOJAS`
-no início do script ou use **Atualizar lojas** para carregar um CSV com as colunas
-`loja;faturamento;meta;fichas;aprovadas;vendas;financiadas;banco;contratos_banco;retorno_total`
-(opcional: `periodo`).
+`comparativo_financiamento.html` compara as lojas mês a mês em faturamento, % aprovação, penetration,
+principal banco, % atingimento da meta e retorno médio, só com números das planilhas de F&I:
+
+```bash
+python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx Indicador_Metas_Novembro_2026.xlsx \
+    META_FI_2026.xlsx CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx comparativo_financiamento.html
+```
+
+- **Faturamento**: notas fiscais de F&I (aba Controle do controle de NFs), pelo mês da solicitação.
+- **Penetration / principal banco / retorno médio**: bases LINX e NBS do Indicador Diário (loja = "estoque tipo").
+- **% atingimento meta**: retorno ÷ meta da loja (aba Metas: out, nov, dez; novembro parcial pela aba Painel).
+- **% aprovação**: nenhuma planilha tem fichas enviadas/aprovadas, então a coluna fica "sem dado".
+- Embaixo, a meta F&I do grupo (META F&I 2026) como está na planilha.
 
 ## Arquivos
 
 - `gerar_one_page.py` — lê a planilha e grava o HTML.
 - `template.html` — layout da página (os dados entram no lugar de `/*__DADOS__*/null`).
 - `index.html` — página gerada.
-- `comparativo_financiamento.html` — comparativo de F&I entre lojas.
+- `gerar_comparativo_fi.py` + `template_comparativo_fi.html` — geram `comparativo_financiamento.html` (comparativo de F&I entre lojas).

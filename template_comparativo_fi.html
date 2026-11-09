@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparativo entre Lojas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --surface:#ffffff; --panel:#f5f9fc; --line:#dfe7ef; --line-2:#eef3f7;
+  --ink:#0f2747; --text:#1d2b3a; --muted:#5b6b7c; --eyebrow:#0f7b8a;
+  --head:#eef4fa; --sorted:#dceaf8; --row-alt:#f3f8fd;
+  --chip:#e3eefa; --chip-ink:#164a7d;
+  --good:#1d7a4a; --good-bg:#e1f3e8; --warn:#9a6400; --warn-bg:#fdf0d3; --bad:#b3261e; --bad-bg:#fbe1de;
+  --rule:#c99a3b;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1621; --surface:#121c29; --panel:#162231; --line:#26364a; --line-2:#1c2a3b;
+    --ink:#e6eef8; --text:#d5dee9; --muted:#93a3b6; --eyebrow:#4fc1cf;
+    --head:#17263a; --sorted:#1d3452; --row-alt:#152234;
+    --chip:#1c3350; --chip-ink:#a9cdf2;
+    --good:#6fd39b; --good-bg:#173829; --warn:#f0c062; --warn-bg:#3a2e14; --bad:#f39a92; --bad-bg:#3e1d1b;
+    --rule:#c99a3b;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1621; --surface:#121c29; --panel:#162231; --line:#26364a; --line-2:#1c2a3b;
+  --ink:#e6eef8; --text:#d5dee9; --muted:#93a3b6; --eyebrow:#4fc1cf;
+  --head:#17263a; --sorted:#1d3452; --row-alt:#152234;
+  --chip:#1c3350; --chip-ink:#a9cdf2;
+  --good:#6fd39b; --good-bg:#173829; --warn:#f0c062; --warn-bg:#3a2e14; --bad:#f39a92; --bad-bg:#3e1d1b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px 16px 40px}
+.card{max-width:1180px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px 10px;flex-wrap:wrap}
+.eyebrow{color:var(--eyebrow);font-size:12px;font-weight:600}
+h1{margin:2px 0 4px;color:var(--ink);font-size:19px;font-weight:700}
+.sub{color:var(--muted);font-size:12px}
+.btn{font:500 13px inherit;font-family:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--head)}
+.filters{margin:0 16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center}
+.filters label{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink);font-size:13px}
+select{font:400 13px inherit;font-family:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 8px;min-width:150px;max-width:100%}
+.meta-line{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 16px 6px;font-size:11.5px;color:var(--muted)}
+.meta-line b{color:var(--ink)}
+.notice{margin:0 16px 10px;padding:2px 0 2px 10px;border-left:2px solid var(--rule);font-size:11.5px;color:var(--warn)}
+.notice:empty{display:none}
+.scroll{overflow-x:auto;border-top:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;min-width:860px}
+th,td{padding:9px 12px;text-align:right;white-space:nowrap}
+th{background:var(--head);color:var(--ink);font-weight:500;font-size:12px;cursor:pointer;user-select:none;position:relative}
+th:first-child,td:first-child{text-align:left}
+th.sorted{background:var(--sorted);color:var(--chip-ink);font-weight:600}
+th .arr{font-size:11px;margin-left:3px}
+th:focus-visible{outline:2px solid var(--eyebrow);outline-offset:-2px}
+th.center,td.center{text-align:center}
+tbody tr{border-top:1px solid var(--line-2)}
+tbody tr:nth-child(even){background:var(--row-alt)}
+td{font-variant-numeric:tabular-nums;color:var(--text)}
+td.loja{font-weight:700;color:var(--ink);white-space:normal;min-width:120px}
+td.loja .wrap{display:flex;justify-content:space-between;align-items:center;gap:8px}
+td.loja .go{color:var(--muted);font-size:11px;font-weight:400}
+td.strong{font-weight:700;color:var(--ink)}
+tfoot td{border-top:2px solid var(--line);font-weight:700;color:var(--ink);background:var(--panel)}
+.chip{display:inline-block;padding:2px 7px;border-radius:5px;background:var(--chip);color:var(--chip-ink);font-weight:600;font-size:12.5px}
+.st{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-weight:500;font-size:12.5px}
+.st.good{background:var(--good-bg);color:var(--good)}
+.st.warn{background:var(--warn-bg);color:var(--warn)}
+.st.bad{background:var(--bad-bg);color:var(--bad)}
+.bank{display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.bank small{color:var(--muted);font-size:11px}
+.dash{color:var(--muted)}
+.foot{padding:10px 16px 14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+.foot b{color:var(--ink)}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--text)}
+details ul{margin:8px 0 0;padding-left:18px;line-height:1.6}
+.sample{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;background:var(--warn-bg);color:var(--warn);font-size:11px;font-weight:600}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+td small,.sub2{display:block;color:var(--muted);font-size:11px;font-weight:400;margin-top:2px}
+.na{color:var(--muted);font-size:11.5px}
+h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
+.grupo{padding:14px 16px 4px;border-top:1px solid var(--line)}
+.grupo p{margin:2px 0 10px;color:var(--muted);font-size:11.5px}
+.grupo table{min-width:620px}
+.grupo th{cursor:default}
+.notice div+div{margin-top:3px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Performance por unidade · F&amp;I</div>
+      <h1>Comparativo entre lojas</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <label>Mês <select id="fMes"></select></label>
+    <label>Lojas <select id="fLoja"><option value="">Todas as lojas</option></select></label>
+    <label>Meta de retorno
+      <select id="fMeta">
+        <option value="">Todas as situações</option>
+        <option value="good">Meta atingida (≥ 100%)</option>
+        <option value="warn">Perto da meta (90–99%)</option>
+        <option value="bad">Abaixo de 90%</option>
+        <option value="none">Sem meta cadastrada</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="meta-line">
+    <span id="ordem"></span>
+    <span>Clique nos títulos para ordenar &#8645;</span>
+  </div>
+  <div class="notice" id="notice"></div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+      <tfoot id="foot"></tfoot>
+    </table>
+  </div>
+
+  <div class="grupo">
+    <h2>Meta F&amp;I do grupo</h2>
+    <p>Da planilha META F&amp;I 2026 (aba META), como está lá. O realizado dessa planilha é outra apuração e não é a soma do retorno das lojas acima.</p>
+    <div class="scroll" style="border:0">
+      <table>
+        <thead><tr><th>Mês</th><th>Meta</th><th>1º orçado</th><th>2º orçado</th><th>Realizado</th><th class="center">% da meta</th></tr></thead>
+        <tbody id="grupo"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>Faixas da meta:</b> verde ≥ 100% · amarelo 90–99% · vermelho &lt; 90% (as mesmas do Indicador de Metas).
+    <details>
+      <summary>Como ler os indicadores e de onde vêm os números</summary>
+      <ul>
+        <li><b>Faturamento</b>: notas fiscais de F&amp;I contra as financeiras (retorno, seguro, bônus, blindagem, PPS, campanha) — aba Controle do Controle de Solicitações de NF, pelo mês da solicitação, como na aba Resumo. Passe o mouse para ver por tipo. Mitsubishi Roraima entra em Mitsubishi Boa Vista.</li>
+        <li><b>% aprovação</b>: nenhuma das planilhas traz fichas enviadas e aprovadas pelos bancos, então a coluna fica vazia até esse dado existir.</li>
+        <li><b>Penetration</b>: vendas com financiamento interno ÷ vendas totais da loja (LINX REL VENDAS + NBS REL VENDAS, loja = coluna “estoque tipo”).</li>
+        <li><b>Principal banco</b>: banco com mais financiamentos internos no mês.</li>
+        <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja (aba Metas do Indicador de Metas, que só tem out, nov e dez). Em novembro o realizado é o da aba Painel, parcial até a data de corte, e a cor segue a projeção de fim de mês (como o Status do Painel). Nomes da aba Metas: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
+        <li><b>Retorno médio</b>: retorno F&amp;I ÷ financiamentos internos (o “unit” do resumo do Indicador Diário). Retorno = LINX RES VEIC VEND FI + NBS REL VENDAS.</li>
+        <li>Na linha <b>Consolidado</b> as taxas são recalculadas sobre os totais; o atingimento usa só as lojas que têm meta.</li>
+        <li>Para atualizar: <code>python3 gerar_comparativo_fi.py</code> com as quatro planilhas (veja o README).</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<script>
+const D = /*__DADOS__*/null;
+const NOMES_MES = {JAN:"Janeiro",FEV:"Fevereiro",MAR:"Março",ABR:"Abril",MAI:"Maio",JUN:"Junho",JUL:"Julho",AGO:"Agosto",SET:"Setembro",OUT:"Outubro",NOV:"Novembro",DEZ:"Dezembro"};
+const SIGLAS = new Set(["GB","VW","MG","GWM","F&I"]);
+const nomeLoja = s => s.toLowerCase().replace(/[^\s(),]+/g, w => SIGLAS.has(w.toUpperCase()) ? w.toUpperCase() : (["e","de","da","do"].includes(w) ? w : w[0].toUpperCase()+w.slice(1)));
+
+const brl = new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2});
+const brl0 = new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
+const pct = v => v==null ? null : (v*100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+const div = (a,b) => (a!=null && b) ? a/b : null;
+const DASH = '<span class="dash">—</span>';
+const faixa = v => v==null ? null : v>=1 ? "good" : v>=0.9 ? "warn" : "bad";
+const ICON = {good:"&#10003;", warn:"&#9888;", bad:"&#10005;"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function linha(loja, mes){
+  const v = (D.porMes[mes]||{})[loja];
+  const f = (D.faturamento[mes]||{})[loja];
+  const parcial = D.parcial && D.parcial.mes===mes ? D.parcial.lojas[loja] : null;
+  const meta = parcial ? parcial.meta : (D.metas[loja]||{})[mes];
+  const retorno = parcial ? parcial.realizado : (v ? v.retorno : null);
+  const bancos = v ? Object.entries(v.bancos) : [];
+  const top = bancos[0];
+  return {
+    loja, nome: nomeLoja(loja),
+    faturamento: f ? f.total : null, fatTipos: f ? f.tipos : null, fatPend: f ? f.pendente : 0,
+    aprovacao: null,
+    vendas: v ? v.vendas : null, financiadas: v ? v.financiadas : null,
+    penetration: v ? div(v.financiadas, v.vendas) : null,
+    banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
+    retorno, meta: meta ?? null, atingimento: div(retorno, meta),
+    projecao: parcial ? parcial.pctProjecao : null,
+    retornoMedio: v ? div(v.retorno, v.financiadas) : null,
+    temDado: !!(v || f || parcial),
+  };
+}
+
+const COLS = [
+  {k:"nome", t:"Loja", txt:true},
+  {k:"faturamento", t:"Faturamento", f:r => {
+    if (r.faturamento==null) return DASH;
+    const tip = Object.entries(r.fatTipos).map(([k,v]) => `${k}: ${brl.format(v)}`).join("\n");
+    return `<span title="${esc(tip)}"><b>${brl.format(r.faturamento)}</b></span>` + (r.fatPend ? `<small>${brl0.format(r.fatPend)} sem NF</small>` : "");
+  }},
+  {k:"aprovacao", t:"% aprovação", f:() => '<span class="na">sem dado</span>'},
+  {k:"penetration", t:"Penetration", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
+  {k:"banco", t:"Principal banco", txt:true, f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.financiadas} contratos</small>` : DASH},
+  {k:"atingimento", t:"% atingimento meta", center:true, f:r => {
+    if (r.meta==null) return '<span class="na">sem meta</span>';
+    const s = faixa(r.projecao ?? r.atingimento); // mês parcial: cor pela projeção, como o Status do Painel
+    return `<span class="st ${s}">${ICON[s]} ${pct(r.atingimento)}</span><small>${brl0.format(r.retorno||0)} de ${brl0.format(r.meta)}` + (r.projecao!=null ? ` · proj. ${pct(r.projecao)}` : "") + `</small>`;
+  }},
+  {k:"retornoMedio", t:"Retorno médio", f:r => r.retornoMedio==null ? DASH : brl.format(r.retornoMedio)},
+];
+
+let sortKey = "faturamento", sortDir = -1;
+const mesesComVenda = D.meses.filter(m => D.porMes[m]);
+$("fMes").innerHTML = D.meses.map(m => `<option value="${m}">${NOMES_MES[m]} ${D.ano}${D.parcial && D.parcial.mes===m ? " (parcial)" : ""}</option>`).join("");
+$("fMes").value = mesesComVenda[mesesComVenda.length-1] || D.meses[D.meses.length-1];
+$("fLoja").innerHTML += D.lojas.map(l => `<option value="${esc(l)}">${esc(nomeLoja(l))}</option>`).join("");
+
+function render(){
+  const mes = $("fMes").value;
+  const todas = D.lojas.map(l => linha(l, mes)).filter(r => r.temDado || r.meta!=null);
+  const rows = todas
+    .filter(r => !$("fLoja").value || r.loja===$("fLoja").value)
+    .filter(r => { const f=$("fMeta").value; return !f || (f==="none" ? r.meta==null : faixa(r.atingimento)===f); });
+
+  const col = COLS.find(c => c.k===sortKey);
+  rows.sort((a,b) => {
+    const x=a[sortKey], y=b[sortKey];
+    if (x==null || x==="") return (y==null || y==="") ? 0 : 1;
+    if (y==null || y==="") return -1;
+    return (col.txt ? String(x).localeCompare(String(y),"pt-BR") : x-y) * sortDir;
+  });
+
+  $("sub").textContent = `${NOMES_MES[mes]} ${D.ano} · ${rows.length} de ${todas.length} lojas`;
+  $("ordem").innerHTML = `Ordenado por <b>${col.t}</b> · ` + (col.txt ? (sortDir>0 ? "A → Z" : "Z → A") : (sortDir<0 ? "maior primeiro" : "menor primeiro"));
+
+  const avisos = [];
+  if (D.parcial && D.parcial.mes===mes)
+    avisos.push(`${NOMES_MES[mes]} é parcial: retorno lançado até ${D.parcial.corte} (${D.parcial.diasDecorridos} de ${D.parcial.diasUteis} dias úteis, aba Painel). As bases de vendas ainda não têm ${NOMES_MES[mes].toLowerCase()}, por isso penetration, banco e retorno médio ficam vazios.`);
+  if (!D.faturamento[mes]) avisos.push(`O controle de notas fiscais não tem solicitações em ${NOMES_MES[mes].toLowerCase()}.`);
+  if (!Object.values(D.metas).some(m => m[mes]!=null) && !(D.parcial && D.parcial.mes===mes)) avisos.push(`A aba Metas só tem metas por loja para out, nov e dez.`);
+  const semVenda = rows.filter(r => r.vendas===0 || (r.vendas==null && D.porMes[mes])).map(r => r.nome);
+  if (semVenda.length) avisos.push(`Sem vendas no mês nas bases: ${semVenda.join(", ")}.`);
+  const semMes = Object.values(D.nfSemMes||{}).reduce((a,b) => a+b, 0);
+  if (semMes) avisos.push(`${brl.format(semMes)} em solicitações de NF sem data ficam fora de todos os meses.`);
+  $("notice").innerHTML = avisos.map(a => `<div>${esc(a)}</div>`).join("");
+
+  $("head").innerHTML = COLS.map(c => {
+    const on = c.k===sortKey;
+    const arr = on ? `<span class="arr">${sortDir<0 ? "&#8595;" : "&#8593;"}</span>` : "";
+    return `<th tabindex="0" data-k="${c.k}" class="${on?"sorted":""} ${c.center?"center":""}" aria-sort="${on?(sortDir<0?"descending":"ascending"):"none"}">${c.t}${arr}</th>`;
+  }).join("");
+
+  $("body").innerHTML = rows.length ? rows.map(r => "<tr>" + COLS.map(c =>
+    c.k==="nome" ? `<td class="loja">${esc(r.nome)}</td>` : `<td class="${c.center?"center":""}">${c.f(r)}</td>`
+  ).join("") + "</tr>").join("")
+  : `<tr><td colspan="${COLS.length}" class="empty">Nenhuma loja com esses filtros.</td></tr>`;
+
+  if (rows.length > 1){
+    const soma = (k, lista=rows) => lista.reduce((t,r) => t + (r[k]||0), 0);
+    const temVenda = rows.some(r => r.vendas!=null);
+    const bancos = {};
+    rows.forEach(r => { const v=(D.porMes[mes]||{})[r.loja]; if (v) Object.entries(v.bancos).forEach(([b,n]) => bancos[b]=(bancos[b]||0)+n); });
+    const top = Object.entries(bancos).sort((a,b) => b[1]-a[1])[0];
+    const comMeta = rows.filter(r => r.meta!=null);
+    const tipos = {};
+    rows.forEach(r => r.fatTipos && Object.entries(r.fatTipos).forEach(([k,v]) => tipos[k]=(tipos[k]||0)+v));
+    const retornoBase = rows.reduce((t,r) => { const v=(D.porMes[mes]||{})[r.loja]; return t + (v ? v.retorno : 0); }, 0);
+    const tot = {
+      faturamento: rows.some(r => r.faturamento!=null) ? soma("faturamento") : null, fatTipos: tipos, fatPend: soma("fatPend"),
+      vendas: temVenda ? soma("vendas") : null, financiadas: temVenda ? soma("financiadas") : null,
+      banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
+      retorno: soma("retorno", comMeta), meta: comMeta.length ? soma("meta", comMeta) : null, projecao: null,
+    };
+    tot.penetration = temVenda ? div(tot.financiadas, tot.vendas) : null;
+    tot.atingimento = div(tot.retorno, tot.meta);
+    tot.retornoMedio = temVenda ? div(retornoBase, tot.financiadas) : null;
+    $("foot").innerHTML = "<tr>" + COLS.map(c => c.k==="nome" ? "<td>Consolidado</td>" : `<td class="${c.center?"center":""}">${c.f(tot)}</td>`).join("") + "</tr>";
+  } else $("foot").innerHTML = "";
+
+  document.querySelectorAll("#head th").forEach(th => {
+    const go = () => { const k=th.dataset.k; if (k===sortKey) sortDir*=-1; else { sortKey=k; sortDir = COLS.find(c=>c.k===k).txt ? 1 : -1; } render(); };
+    th.onclick = go;
+    th.onkeydown = e => { if (e.key==="Enter" || e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+
+$("grupo").innerHTML = (D.metaGrupo||[]).map(g => {
+  const p = div(g.real, g.meta), s = faixa(p);
+  const v = x => x==null ? DASH : brl.format(x);
+  return `<tr><td class="loja">${NOMES_MES[g.mes]}</td><td>${v(g.meta)}</td><td>${v(g.orcado1)}</td><td>${v(g.orcado2)}</td><td><b>${v(g.real)}</b></td><td class="center">${p==null ? DASH : `<span class="st ${s}">${ICON[s]} ${pct(p)}</span>`}</td></tr>`;
+}).join("");
+
+["fMes","fLoja","fMeta"].forEach(id => $(id).onchange = render);
+render();
+</script>
+</body>
+</html>

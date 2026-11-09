@@ -83,6 +83,14 @@ summary{cursor:pointer;color:var(--text)}
 details ul{margin:8px 0 0;padding-left:18px;line-height:1.6}
 .sample{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;background:var(--warn-bg);color:var(--warn);font-size:11px;font-weight:600}
 .empty{padding:28px;text-align:center;color:var(--muted)}
+td small,.sub2{display:block;color:var(--muted);font-size:11px;font-weight:400;margin-top:2px}
+.na{color:var(--muted);font-size:11.5px}
+h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
+.grupo{padding:14px 16px 4px;border-top:1px solid var(--line)}
+.grupo p{margin:2px 0 10px;color:var(--muted);font-size:11.5px}
+.grupo table{min-width:620px}
+.grupo th{cursor:default}
+.notice div+div{margin-top:3px}
 </style>
 </head>
 <body>
@@ -93,22 +101,18 @@ details ul{margin:8px 0 0;padding-left:18px;line-height:1.6}
       <h1>Comparativo entre lojas</h1>
       <div class="sub" id="sub"></div>
     </div>
-    <div>
-      <button class="btn" id="btnImport" type="button" title="Carregar um CSV com os números do mês">&#8635; Atualizar lojas</button>
-      <input type="file" id="file" accept=".csv,text/csv" hidden>
-    </div>
   </div>
 
   <div class="filters">
-    <label>Lojas
-      <select id="fLoja"><option value="">Todas as lojas</option></select>
-    </label>
-    <label>Meta de faturamento
+    <label>Mês <select id="fMes"></select></label>
+    <label>Lojas <select id="fLoja"><option value="">Todas as lojas</option></select></label>
+    <label>Meta de retorno
       <select id="fMeta">
         <option value="">Todas as situações</option>
         <option value="good">Meta atingida (≥ 100%)</option>
         <option value="warn">Perto da meta (90–99%)</option>
         <option value="bad">Abaixo de 90%</option>
+        <option value="none">Sem meta cadastrada</option>
       </select>
     </label>
   </div>
@@ -127,102 +131,125 @@ details ul{margin:8px 0 0;padding-left:18px;line-height:1.6}
     </table>
   </div>
 
+  <div class="grupo">
+    <h2>Meta F&amp;I do grupo</h2>
+    <p>Da planilha META F&amp;I 2026 (aba META), como está lá. O realizado dessa planilha é outra apuração e não é a soma do retorno das lojas acima.</p>
+    <div class="scroll" style="border:0">
+      <table>
+        <thead><tr><th>Mês</th><th>Meta</th><th>1º orçado</th><th>2º orçado</th><th>Realizado</th><th class="center">% da meta</th></tr></thead>
+        <tbody id="grupo"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="foot">
-    <b>Faixas da meta:</b> verde ≥ 100% · amarelo 90–99% · vermelho &lt; 90%.
-    Penetration mostra quanto das vendas saiu financiado em cada loja.
+    <b>Faixas da meta:</b> verde ≥ 100% · amarelo 90–99% · vermelho &lt; 90% (as mesmas do Indicador de Metas).
     <details>
       <summary>Como ler os indicadores e de onde vêm os números</summary>
       <ul>
-        <li><b>Faturamento</b>: receita de vendas de veículos da loja no mês.</li>
-        <li><b>% aprovação</b>: fichas aprovadas ÷ fichas enviadas aos bancos.</li>
-        <li><b>Penetration</b>: vendas financiadas ÷ vendas totais da loja.</li>
-        <li><b>Principal banco</b>: banco com mais contratos no mês; abaixo, a fatia dele nos contratos da loja.</li>
-        <li><b>% atingimento meta</b>: faturamento ÷ meta de faturamento do mês.</li>
-        <li><b>Retorno médio</b>: retorno (comissão/plus) recebido dos bancos ÷ número de contratos financiados.</li>
-        <li>A linha <b>Consolidado</b> soma as lojas filtradas e recalcula as taxas sobre os totais (não é média das taxas).</li>
-        <li><b>Atualizar lojas</b> lê um CSV com as colunas:
-          <code>loja;faturamento;meta;fichas;aprovadas;vendas;financiadas;banco;contratos_banco;retorno_total</code>
-          (separador “;” ou “,”, decimais com vírgula ou ponto).</li>
+        <li><b>Faturamento</b>: notas fiscais de F&amp;I contra as financeiras (retorno, seguro, bônus, blindagem, PPS, campanha) — aba Controle do Controle de Solicitações de NF, pelo mês da solicitação, como na aba Resumo. Passe o mouse para ver por tipo. Mitsubishi Roraima entra em Mitsubishi Boa Vista.</li>
+        <li><b>% aprovação</b>: nenhuma das planilhas traz fichas enviadas e aprovadas pelos bancos, então a coluna fica vazia até esse dado existir.</li>
+        <li><b>Penetration</b>: vendas com financiamento interno ÷ vendas totais da loja (LINX REL VENDAS + NBS REL VENDAS, loja = coluna “estoque tipo”).</li>
+        <li><b>Principal banco</b>: banco com mais financiamentos internos no mês.</li>
+        <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja (aba Metas do Indicador de Metas, que só tem out, nov e dez). Em novembro o realizado é o da aba Painel, parcial até a data de corte, e a cor segue a projeção de fim de mês (como o Status do Painel). Nomes da aba Metas: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
+        <li><b>Retorno médio</b>: retorno F&amp;I ÷ financiamentos internos (o “unit” do resumo do Indicador Diário). Retorno = LINX RES VEIC VEND FI + NBS REL VENDAS.</li>
+        <li>Na linha <b>Consolidado</b> as taxas são recalculadas sobre os totais; o atingimento usa só as lojas que têm meta.</li>
+        <li>Para atualizar: <code>python3 gerar_comparativo_fi.py</code> com as quatro planilhas (veja o README).</li>
       </ul>
     </details>
   </div>
 </div>
 
 <script>
-// ===== DADOS — substitua pelos números reais do mês (ou use "Atualizar lojas" com um CSV) =====
-let PERIODO = "Setembro 2026";
-let AMOSTRA = true; // true = números de exemplo; vira false ao importar um CSV
-let LOJAS = [
-  // loja, faturamento, meta, fichas enviadas, fichas aprovadas, vendas, vendas financiadas, principal banco, contratos no principal banco, retorno total (R$)
-  {loja:"Omoda | Jaecoo Imperatriz", faturamento:620000,  meta:750000,  fichas:9,  aprovadas:6,  vendas:4,  financiadas:3,  banco:"BV",        contratosBanco:2, retorno:7800},
-  {loja:"Mitsubishi Manaus",         faturamento:2950000, meta:2800000, fichas:28, aprovadas:19, vendas:12, financiadas:8,  banco:"Santander", contratosBanco:5, retorno:24000},
-  {loja:"Seminovos GB Select",       faturamento:980000,  meta:1050000, fichas:21, aprovadas:12, vendas:9,  financiadas:6,  banco:"Bradesco",  contratosBanco:3, retorno:13200},
-  {loja:"Omoda | Jaecoo Boa Vista",  faturamento:460000,  meta:600000,  fichas:7,  aprovadas:4,  vendas:3,  financiadas:2,  banco:"BV",        contratosBanco:1, retorno:5100},
-  {loja:"Tocauto Auto",              faturamento:3850000, meta:3500000, fichas:40, aprovadas:29, vendas:18, financiadas:12, banco:"Itaú",      contratosBanco:7, retorno:38400},
-  {loja:"Volvo Belém",               faturamento:640000,  meta:800000,  fichas:4,  aprovadas:3,  vendas:2,  financiadas:2,  banco:"Safra",     contratosBanco:1, retorno:9000},
-  {loja:"MG Motor Manaus",           faturamento:290000,  meta:450000,  fichas:6,  aprovadas:3,  vendas:2,  financiadas:1,  banco:"Pan",       contratosBanco:1, retorno:2300},
-  {loja:"Mitsubishi Boa Vista",      faturamento:470000,  meta:650000,  fichas:5,  aprovadas:3,  vendas:2,  financiadas:1,  banco:"Santander", contratosBanco:1, retorno:3100},
-  {loja:"Volvo Manaus",              faturamento:380000,  meta:700000,  fichas:3,  aprovadas:2,  vendas:1,  financiadas:1,  banco:"Safra",     contratosBanco:1, retorno:4800},
-  {loja:"GWM Boa Vista",             faturamento:0,       meta:450000,  fichas:3,  aprovadas:1,  vendas:0,  financiadas:0,  banco:"",          contratosBanco:0, retorno:0},
-  {loja:"Tocauto Imperatriz",        faturamento:0,       meta:300000,  fichas:2,  aprovadas:0,  vendas:0,  financiadas:0,  banco:"",          contratosBanco:0, retorno:0},
-];
-// ==============================================================================================
+const D = {"ano": 2026, "meses": ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV"], "lojas": ["GB SELECT (MANAUS, BOA VISTA E BELÉM)", "GWM BOA VISTA", "MG MANAUS", "MITSUBISHI BOA VISTA", "MITSUBISHI MANAUS", "OMODA BOA VISTA", "OMODA IMPERATRIZ", "VOLVO BELEM", "VOLVO MANAUS", "VW CAMINHÕES BALSAS", "VW CAMINHÕES IMPERATRIZ", "VW TOCAUTO AUTO"], "porMes": {"JAN": {"MITSUBISHI MANAUS": {"vendas": 33, "financiadas": 14, "volume": 1669572.0, "retorno": 58519.8, "bancos": {"SAFRA": 11, "BRADESCO": 2, "C6": 1}}, "MITSUBISHI BOA VISTA": {"vendas": 18, "financiadas": 0, "volume": 0.0, "retorno": 29423.04, "bancos": {}}, "VW TOCAUTO AUTO": {"vendas": 53, "financiadas": 23, "volume": 1461555.0, "retorno": 30154.29, "bancos": {"VOLKS": 23}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 22, "financiadas": 1, "volume": 40000.0, "retorno": 6300.0, "bancos": {"SAFRA": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 11, "financiadas": 3, "volume": 1530000.0, "retorno": 0.0, "bancos": {"TRATON": 2, "BRADESCO": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 1, "financiadas": 1, "volume": 495000.0, "retorno": 0.0, "bancos": {"TRATON": 1}}, "VOLVO MANAUS": {"vendas": 7, "financiadas": 3, "volume": 373930.0, "retorno": 0.0, "bancos": {"SANTANDER": 3}}, "VOLVO BELEM": {"vendas": 1, "financiadas": 1, "volume": 0.0, "retorno": 0.0, "bancos": {"BRADESCO": 1}}}, "FEV": {"GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 12, "financiadas": 0, "volume": 0.0, "retorno": 8580.0, "bancos": {}}, "MITSUBISHI BOA VISTA": {"vendas": 23, "financiadas": 0, "volume": 0.0, "retorno": 11070.0, "bancos": {}}, "VW TOCAUTO AUTO": {"vendas": 55, "financiadas": 30, "volume": 2144681.6, "retorno": 47525.01, "bancos": {"VOLKS": 29, "SAFRA": 1}}, "MITSUBISHI MANAUS": {"vendas": 28, "financiadas": 10, "volume": 1192940.0, "retorno": 62817.0, "bancos": {"SAFRA": 7, "BRADESCO": 2, "ITAU": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 17, "financiadas": 7, "volume": 3642100.0, "retorno": 0.0, "bancos": {"TRATON": 3, "ITAU": 3, "SANTANDER": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 2, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO MANAUS": {"vendas": 6, "financiadas": 4, "volume": 537200.0, "retorno": 2639.4, "bancos": {"SANTANDER": 3, "VOLKS": 1}}, "VOLVO BELEM": {"vendas": 2, "financiadas": 2, "volume": 91965.0, "retorno": 0.0, "bancos": {"SANTANDER": 2}}}, "MAR": {"GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 19, "financiadas": 1, "volume": 30000.0, "retorno": 0.0, "bancos": {"SAFRA": 1}}, "OMODA BOA VISTA": {"vendas": 2, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VW TOCAUTO AUTO": {"vendas": 72, "financiadas": 14, "volume": 942939.31, "retorno": 22068.69, "bancos": {"VOLKS": 14}}, "MITSUBISHI MANAUS": {"vendas": 34, "financiadas": 11, "volume": 1387104.0, "retorno": 65020.59, "bancos": {"SAFRA": 9, "ITAU": 2}}, "MITSUBISHI BOA VISTA": {"vendas": 17, "financiadas": 9, "volume": 1229600.0, "retorno": 60362.46, "bancos": {"SAFRA": 8, "ITAU": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 29, "financiadas": 5, "volume": 1898700.0, "retorno": 0.0, "bancos": {"TRATON": 4, "ITAU": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 2, "financiadas": 1, "volume": 600000.0, "retorno": 0.0, "bancos": {"TRATON": 1}}, "VOLVO MANAUS": {"vendas": 10, "financiadas": 1, "volume": 121980.0, "retorno": 0.0, "bancos": {"SANTANDER": 1}}, "VOLVO BELEM": {"vendas": 5, "financiadas": 1, "volume": 119051.0, "retorno": 0.0, "bancos": {"SANTANDER": 1}}}, "ABR": {"VW TOCAUTO AUTO": {"vendas": 55, "financiadas": 29, "volume": 2008131.0, "retorno": 38790.05, "bancos": {"VOLKS": 29}}, "MITSUBISHI MANAUS": {"vendas": 37, "financiadas": 6, "volume": 833986.0, "retorno": 50627.4, "bancos": {"SAFRA": 6}}, "MITSUBISHI BOA VISTA": {"vendas": 12, "financiadas": 7, "volume": 1220440.0, "retorno": 65738.4, "bancos": {"SAFRA": 6, "ITAU": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 9, "financiadas": 4, "volume": 2026886.0, "retorno": 0.0, "bancos": {"TRATON": 2, "BRADESCO": 1, "ITAU": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 17, "financiadas": 4, "volume": 1923886.0, "retorno": 0.0, "bancos": {"TRATON": 3, "BRADESCO": 1}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 10, "financiadas": 1, "volume": 145000.0, "retorno": 8700.0, "bancos": {"SAFRA": 1}}, "OMODA BOA VISTA": {"vendas": 4, "financiadas": 3, "volume": 382000.0, "retorno": 4860.0, "bancos": {"SANTANDER": 3}}, "VOLVO MANAUS": {"vendas": 6, "financiadas": 2, "volume": 168950.0, "retorno": 3000.0, "bancos": {"SANTANDER": 2}}, "VOLVO BELEM": {"vendas": 5, "financiadas": 4, "volume": 606405.0, "retorno": 0.0, "bancos": {"SANTANDER": 4}}}, "MAI": {"VW TOCAUTO AUTO": {"vendas": 71, "financiadas": 30, "volume": 1948561.0, "retorno": 40035.26, "bancos": {"VOLKS": 30}}, "MITSUBISHI MANAUS": {"vendas": 32, "financiadas": 10, "volume": 886226.0, "retorno": 49906.32, "bancos": {"SAFRA": 8, "VOLKS": 2}}, "MITSUBISHI BOA VISTA": {"vendas": 15, "financiadas": 2, "volume": 316000.0, "retorno": 18960.0, "bancos": {"SAFRA": 2}}, "OMODA BOA VISTA": {"vendas": 5, "financiadas": 4, "volume": 335945.6, "retorno": 7420.0, "bancos": {"SANTANDER": 4}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 35, "financiadas": 6, "volume": 384750.0, "retorno": 23531.79, "bancos": {"SAFRA": 4, "SANTANDER": 1, "VOLKS": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 3, "financiadas": 1, "volume": 490000.0, "retorno": 0.0, "bancos": {"TRATON": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 1, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO MANAUS": {"vendas": 6, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO BELEM": {"vendas": 5, "financiadas": 3, "volume": 324900.0, "retorno": 9057.6, "bancos": {"SANTANDER": 2, "VOLKS": 1}}}, "JUN": {"VW TOCAUTO AUTO": {"vendas": 84, "financiadas": 40, "volume": 2502304.19, "retorno": 7291.4, "bancos": {"VOLKS": 40}}, "MITSUBISHI MANAUS": {"vendas": 46, "financiadas": 19, "volume": 1874295.75, "retorno": 79572.42, "bancos": {"SAFRA": 17, "VOLKS": 1, "BRADESCO": 1}}, "OMODA BOA VISTA": {"vendas": 5, "financiadas": 3, "volume": 332000.0, "retorno": 21745.62, "bancos": {"SANTANDER": 2, "SAFRA": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 16, "financiadas": 7, "volume": 3077320.0, "retorno": 0.0, "bancos": {"SAFRA": 4, "TRATON": 3}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 26, "financiadas": 2, "volume": 108000.0, "retorno": 4500.0, "bancos": {"SAFRA": 1, "SANTANDER": 1}}, "MITSUBISHI BOA VISTA": {"vendas": 12, "financiadas": 1, "volume": 157000.0, "retorno": 9420.0, "bancos": {"BRADESCO": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 5, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO BELEM": {"vendas": 2, "financiadas": 1, "volume": 199950.0, "retorno": 7198.2, "bancos": {"SANTANDER": 1}}, "VOLVO MANAUS": {"vendas": 5, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}}, "JUL": {"VW TOCAUTO AUTO": {"vendas": 72, "financiadas": 43, "volume": 2712176.0, "retorno": 34830.16, "bancos": {"VOLKS": 42, "SAFRA": 1}}, "MITSUBISHI MANAUS": {"vendas": 59, "financiadas": 25, "volume": 3295796.0, "retorno": 140023.56, "bancos": {"SAFRA": 22, "BRADESCO": 2, "SANTANDER": 1}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 36, "financiadas": 7, "volume": 813990.0, "retorno": 30844.0, "bancos": {"SAFRA": 4, "SANTANDER": 3}}, "VW CAMINHÕES BALSAS": {"vendas": 3, "financiadas": 1, "volume": 169610.0, "retorno": 0.0, "bancos": {"TRATON": 1}}, "OMODA BOA VISTA": {"vendas": 8, "financiadas": 2, "volume": 174600.0, "retorno": 5700.0, "bancos": {"SANTANDER": 2}}, "MITSUBISHI BOA VISTA": {"vendas": 20, "financiadas": 2, "volume": 314049.7, "retorno": 20425.78, "bancos": {"SAFRA": 1, "VOLKS": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 1, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO MANAUS": {"vendas": 5, "financiadas": 3, "volume": 491900.0, "retorno": 15535.8, "bancos": {"SANTANDER": 3}}, "VOLVO BELEM": {"vendas": 1, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}}, "AGO": {"MITSUBISHI MANAUS": {"vendas": 47, "financiadas": 19, "volume": 2535942.5, "retorno": 73244.79, "bancos": {"SAFRA": 11, "BRADESCO": 5, "VOLKS": 2, "C6": 1}}, "VW TOCAUTO AUTO": {"vendas": 70, "financiadas": 25, "volume": 1730126.69, "retorno": 29671.81, "bancos": {"VOLKS": 21, "BRADESCO": 2, "BV": 1, "SAFRA": 1}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 28, "financiadas": 5, "volume": 639393.0, "retorno": 36203.58, "bancos": {"SAFRA": 4, "VOLKS": 1}}, "OMODA BOA VISTA": {"vendas": 11, "financiadas": 4, "volume": 438200.0, "retorno": 18660.0, "bancos": {"SAFRA": 2, "SANTANDER": 2}}, "MITSUBISHI BOA VISTA": {"vendas": 12, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 9, "financiadas": 3, "volume": 1218405.22, "retorno": 0.0, "bancos": {"TRATON": 3}}, "OMODA IMPERATRIZ": {"vendas": 4, "financiadas": 2, "volume": 134990.0, "retorno": 0.0, "bancos": {"ITAU": 1, "SANTANDER": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 2, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO BELEM": {"vendas": 2, "financiadas": 2, "volume": 424940.0, "retorno": 15297.84, "bancos": {"SANTANDER": 2}}, "VOLVO MANAUS": {"vendas": 3, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}}, "SET": {"VW TOCAUTO AUTO": {"vendas": 61, "financiadas": 26, "volume": 1558393.5, "retorno": 11193.52, "bancos": {"VOLKS": 23, "SAFRA": 2, "BRADESCO": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 7, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "MITSUBISHI MANAUS": {"vendas": 48, "financiadas": 19, "volume": 2363836.0, "retorno": 91713.4, "bancos": {"SAFRA": 10, "VOLKS": 5, "ITAU": 3, "BRADESCO": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 26, "financiadas": 14, "volume": 5109600.0, "retorno": 0.0, "bancos": {"TRATON": 14}}, "OMODA BOA VISTA": {"vendas": 14, "financiadas": 4, "volume": 325896.0, "retorno": 9600.0, "bancos": {"SANTANDER": 3, "SAFRA": 1}}, "OMODA IMPERATRIZ": {"vendas": 10, "financiadas": 7, "volume": 417960.0, "retorno": 3749.97, "bancos": {"SANTANDER": 4, "VOLKS": 2, "SAFRA": 1}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 24, "financiadas": 3, "volume": 340000.0, "retorno": 19320.0, "bancos": {"SANTANDER": 2, "SAFRA": 1}}, "MITSUBISHI BOA VISTA": {"vendas": 5, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "MG MANAUS": {"vendas": 2, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO BELEM": {"vendas": 4, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "VOLVO MANAUS": {"vendas": 3, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "GWM BOA VISTA": {"vendas": 3, "financiadas": 1, "volume": 100000.0, "retorno": 6000.0, "bancos": {"C6": 1}}}, "OUT": {"OMODA BOA VISTA": {"vendas": 15, "financiadas": 0, "volume": 0.0, "retorno": 30462.0, "bancos": {}}, "VW TOCAUTO AUTO": {"vendas": 56, "financiadas": 27, "volume": 1664163.0, "retorno": 26359.94, "bancos": {"VOLKS": 26, "SAFRA": 1}}, "OMODA IMPERATRIZ": {"vendas": 11, "financiadas": 6, "volume": 543970.0, "retorno": 7197.39, "bancos": {"SANTANDER": 4, "VOLKS": 1, "SAFRA": 1}}, "MITSUBISHI MANAUS": {"vendas": 50, "financiadas": 15, "volume": 1911920.0, "retorno": 94916.0, "bancos": {"SAFRA": 12, "ITAU": 2, "C6": 1}}, "VW CAMINHÕES IMPERATRIZ": {"vendas": 9, "financiadas": 6, "volume": 2783600.0, "retorno": 0.0, "bancos": {"SANTANDER": 4, "TRATON": 2}}, "MG MANAUS": {"vendas": 8, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "MITSUBISHI BOA VISTA": {"vendas": 5, "financiadas": 0, "volume": 0.0, "retorno": 9480.0, "bancos": {}}, "GB SELECT (MANAUS, BOA VISTA E BELÉM)": {"vendas": 38, "financiadas": 7, "volume": 575990.0, "retorno": 53639.4, "bancos": {"SAFRA": 5, "ITAU": 1, "SANTANDER": 1}}, "VW CAMINHÕES BALSAS": {"vendas": 1, "financiadas": 0, "volume": 0.0, "retorno": 0.0, "bancos": {}}, "GWM BOA VISTA": {"vendas": 9, "financiadas": 7, "volume": 1005700.0, "retorno": 24073.2, "bancos": {"SAFRA": 7}}, "VOLVO BELEM": {"vendas": 1, "financiadas": 1, "volume": 217475.0, "retorno": 0.0, "bancos": {"SANTANDER": 1}}, "VOLVO MANAUS": {"vendas": 4, "financiadas": 1, "volume": 104950.0, "retorno": 6297.0, "bancos": {"SANTANDER": 1}}}}, "faturamento": {"AGO": {"MITSUBISHI MANAUS": {"total": 257415.48, "pendente": 0.0, "tipos": {"RETORNO": 175961.73, "SEGURO": 75712.44, "CAMPANHA": 5741.31}}, "MITSUBISHI BOA VISTA": {"total": 8229.68, "pendente": 0.0, "tipos": {"RETORNO": 8229.68}}, "VW TOCAUTO AUTO": {"total": 11058.4, "pendente": 0.0, "tipos": {"PPS": 11058.4}}, "VOLVO MANAUS": {"total": 12272.17, "pendente": 0.0, "tipos": {"RETORNO": 12272.17}}}, "SET": {"MITSUBISHI MANAUS": {"total": 110167.22, "pendente": 0.0, "tipos": {"RETORNO": 91305.88, "BONUS": 10623.94, "SEGURO": 8237.4}}, "VOLVO MANAUS": {"total": 63071.58, "pendente": 0.0, "tipos": {"BLINDAGEM": 31500, "RETORNO": 29973.93, "SEGURO": 1597.65}}, "VOLVO BELEM": {"total": 55884.52, "pendente": 0.0, "tipos": {"BLINDAGEM": 39400, "RETORNO": 15130.26, "SEGURO": 1354.26}}, "VW TOCAUTO AUTO": {"total": 54639.08, "pendente": 0.0, "tipos": {"RETORNO": 35302.95, "BONUS": 10184.47, "SEGURO": 9151.66}}, "OMODA BOA VISTA": {"total": 3549.6, "pendente": 0.0, "tipos": {"RETORNO": 3549.6}}, "MITSUBISHI BOA VISTA": {"total": 22876.23, "pendente": 0.0, "tipos": {"RETORNO": 22060.76, "SEGURO": 815.47}}}, "OUT": {"VW TOCAUTO AUTO": {"total": 35421.58, "pendente": 0.0, "tipos": {"RETORNO": 27913.05, "BONUS": 7508.53}}, "MITSUBISHI MANAUS": {"total": 141334.44, "pendente": 0.0, "tipos": {"RETORNO": 110839.06, "SEGURO": 15755.61, "BONUS": 14739.77}}, "OMODA BOA VISTA": {"total": 4791.96, "pendente": 0.0, "tipos": {"RETORNO": 4791.96}}, "VOLVO BELEM": {"total": 2568.29, "pendente": 0.0, "tipos": {"SEGURO": 1370.46, "RETORNO": 1197.83}}, "VOLVO MANAUS": {"total": 10252.77, "pendente": 0.0, "tipos": {"RETORNO": 9979.68, "SEGURO": 273.09}}, "MITSUBISHI BOA VISTA": {"total": 580.22, "pendente": 0.0, "tipos": {"SEGURO": 580.22}}}}, "nfSemMes": {"VOLVO BELEM": 25983.16, "MITSUBISHI MANAUS": 46571.52, "VOLVO MANAUS": 8580.8, "OMODA BOA VISTA": 20928.06, "MG MANAUS": 4858.87}, "metas": {"MITSUBISHI MANAUS": {"OUT": 123172, "NOV": 122333, "DEZ": 88435}, "VOLVO MANAUS": {"OUT": 14214, "NOV": 14672, "DEZ": 9761}, "MG MANAUS": {"OUT": 6627, "NOV": 12746, "DEZ": 12793}, "VOLVO BELEM": {"OUT": 6627, "NOV": 12746, "DEZ": 12793}, "MITSUBISHI BOA VISTA": {"OUT": 35874, "NOV": 46786, "DEZ": 64685}, "OMODA BOA VISTA": {"OUT": 8961, "NOV": 8961, "DEZ": 8961}, "GWM BOA VISTA": {"OUT": 8961, "NOV": 8961, "DEZ": 8961}, "VW TOCAUTO AUTO": {"OUT": 58564, "NOV": 54098, "DEZ": 54063}, "VW CAMINHÕES IMPERATRIZ": {"OUT": 2380, "NOV": 2020, "DEZ": 2317}, "VW CAMINHÕES BALSAS": {"OUT": 892, "NOV": 1041, "DEZ": 932}, "OMODA IMPERATRIZ": {"OUT": 8961, "NOV": 8961, "DEZ": 8961}}, "parcial": {"mes": "NOV", "corte": "07/11/2026", "diasUteis": 23, "diasDecorridos": 3, "lojas": {"MITSUBISHI MANAUS": {"meta": 122333, "realizado": 21418.8, "projecao": 164210.8, "pctProjecao": 1.3423262733685921}, "VOLVO MANAUS": {"meta": 14672, "realizado": 0, "projecao": 0, "pctProjecao": 0}, "MG MANAUS": {"meta": 12746, "realizado": 1199.88, "projecao": 9199.080000000002, "pctProjecao": 0.7217228934567709}, "VOLVO BELEM": {"meta": 12746, "realizado": 0, "projecao": 0, "pctProjecao": 0}, "MITSUBISHI BOA VISTA": {"meta": 46786, "realizado": 10920, "projecao": 83720, "pctProjecao": 1.7894241867225238}, "OMODA BOA VISTA": {"meta": 8961, "realizado": 0, "projecao": 0, "pctProjecao": 0}, "GWM BOA VISTA": {"meta": 8961, "realizado": 0, "projecao": 0, "pctProjecao": 0}, "VW TOCAUTO AUTO": {"meta": 54098, "realizado": 5064.85, "projecao": 38830.51666666667, "pctProjecao": 0.7177810023783997}, "VW CAMINHÕES IMPERATRIZ": {"meta": 2020, "realizado": 0, "projecao": 0, "pctProjecao": 0}, "VW CAMINHÕES BALSAS": {"meta": 1041, "realizado": 0, "projecao": 0, "pctProjecao": 0}, "OMODA IMPERATRIZ": {"meta": 8961, "realizado": 4679.88, "projecao": 35879.08, "pctProjecao": 4.003914741658297}}}, "metaGrupo": [{"mes": "JUL", "meta": 210237.24, "orcado1": 177237, "orcado2": 177383, "real": 243543}, {"mes": "AGO", "meta": 208847.3, "orcado1": 175847, "orcado2": 182406, "real": 365002}, {"mes": "SET", "meta": 204058.62, "orcado1": 171059, "orcado2": 188213, "real": 239288.23}, {"mes": "OUT", "meta": 212613.59, "orcado1": 179614, "orcado2": 197643, "real": null}, {"mes": "NOV", "meta": 235060.49, "orcado1": 202060, "orcado2": 208371, "real": null}, {"mes": "DEZ", "meta": 251065.26, "orcado1": 218065, "orcado2": 191319, "real": null}]};
+const NOMES_MES = {JAN:"Janeiro",FEV:"Fevereiro",MAR:"Março",ABR:"Abril",MAI:"Maio",JUN:"Junho",JUL:"Julho",AGO:"Agosto",SET:"Setembro",OUT:"Outubro",NOV:"Novembro",DEZ:"Dezembro"};
+const SIGLAS = new Set(["GB","VW","MG","GWM","F&I"]);
+const nomeLoja = s => s.toLowerCase().replace(/[^\s(),]+/g, w => SIGLAS.has(w.toUpperCase()) ? w.toUpperCase() : (["e","de","da","do"].includes(w) ? w : w[0].toUpperCase()+w.slice(1)));
 
 const brl = new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2});
+const brl0 = new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
 const pct = v => v==null ? null : (v*100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
-const div = (a,b) => b ? a/b : null;
+const div = (a,b) => (a!=null && b) ? a/b : null;
 const DASH = '<span class="dash">—</span>';
 const faixa = v => v==null ? null : v>=1 ? "good" : v>=0.9 ? "warn" : "bad";
 const ICON = {good:"&#10003;", warn:"&#9888;", bad:"&#10005;"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function calc(r){
-  return {...r,
-    aprovacao: div(r.aprovadas, r.fichas),
-    penetration: div(r.financiadas, r.vendas),
-    shareBanco: div(r.contratosBanco, r.financiadas),
-    atingimento: div(r.faturamento, r.meta),
-    retornoMedio: div(r.retorno, r.financiadas),
+function linha(loja, mes){
+  const v = (D.porMes[mes]||{})[loja];
+  const f = (D.faturamento[mes]||{})[loja];
+  const parcial = D.parcial && D.parcial.mes===mes ? D.parcial.lojas[loja] : null;
+  const meta = parcial ? parcial.meta : (D.metas[loja]||{})[mes];
+  const retorno = parcial ? parcial.realizado : (v ? v.retorno : null);
+  const bancos = v ? Object.entries(v.bancos) : [];
+  const top = bancos[0];
+  return {
+    loja, nome: nomeLoja(loja),
+    faturamento: f ? f.total : null, fatTipos: f ? f.tipos : null, fatPend: f ? f.pendente : 0,
+    aprovacao: null,
+    vendas: v ? v.vendas : null, financiadas: v ? v.financiadas : null,
+    penetration: v ? div(v.financiadas, v.vendas) : null,
+    banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
+    retorno, meta: meta ?? null, atingimento: div(retorno, meta),
+    projecao: parcial ? parcial.pctProjecao : null,
+    retornoMedio: v ? div(v.retorno, v.financiadas) : null,
+    temDado: !!(v || f || parcial),
   };
 }
 
 const COLS = [
-  {k:"loja",        t:"Loja",               txt:true},
-  {k:"faturamento", t:"Faturamento",        f:r => r.faturamento ? brl.format(r.faturamento) : DASH, cls:"strong"},
-  {k:"aprovacao",   t:"% aprovação",        f:r => r.aprovacao==null ? DASH : `<span class="chip">${pct(r.aprovacao)}</span>`},
-  {k:"penetration", t:"Penetration",        f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span>`},
-  {k:"banco",       t:"Principal banco",    txt:true, f:r => r.banco ? `<span class="bank">${esc(r.banco)}<small>${pct(r.shareBanco) ?? "—"} dos contratos</small></span>` : DASH},
-  {k:"atingimento", t:"% atingimento meta", center:true, f:r => { const s=faixa(r.atingimento); return s ? `<span class="st ${s}">${ICON[s]} ${pct(r.atingimento)}</span>` : DASH; }},
-  {k:"retornoMedio",t:"Retorno médio",      f:r => r.retornoMedio==null ? DASH : brl.format(r.retornoMedio)},
+  {k:"nome", t:"Loja", txt:true},
+  {k:"faturamento", t:"Faturamento", f:r => {
+    if (r.faturamento==null) return DASH;
+    const tip = Object.entries(r.fatTipos).map(([k,v]) => `${k}: ${brl.format(v)}`).join("\n");
+    return `<span title="${esc(tip)}"><b>${brl.format(r.faturamento)}</b></span>` + (r.fatPend ? `<small>${brl0.format(r.fatPend)} sem NF</small>` : "");
+  }},
+  {k:"aprovacao", t:"% aprovação", f:() => '<span class="na">sem dado</span>'},
+  {k:"penetration", t:"Penetration", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
+  {k:"banco", t:"Principal banco", txt:true, f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.financiadas} contratos</small>` : DASH},
+  {k:"atingimento", t:"% atingimento meta", center:true, f:r => {
+    if (r.meta==null) return '<span class="na">sem meta</span>';
+    const s = faixa(r.projecao ?? r.atingimento); // mês parcial: cor pela projeção, como o Status do Painel
+    return `<span class="st ${s}">${ICON[s]} ${pct(r.atingimento)}</span><small>${brl0.format(r.retorno||0)} de ${brl0.format(r.meta)}` + (r.projecao!=null ? ` · proj. ${pct(r.projecao)}` : "") + `</small>`;
+  }},
+  {k:"retornoMedio", t:"Retorno médio", f:r => r.retornoMedio==null ? DASH : brl.format(r.retornoMedio)},
 ];
 
 let sortKey = "faturamento", sortDir = -1;
-const $ = id => document.getElementById(id);
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-
-function fillLojas(){
-  const sel = $("fLoja"), cur = sel.value;
-  sel.innerHTML = '<option value="">Todas as lojas</option>' +
-    LOJAS.map(r => `<option>${esc(r.loja)}</option>`).join("");
-  if (LOJAS.some(r => r.loja===cur)) sel.value = cur;
-}
+const mesesComVenda = D.meses.filter(m => D.porMes[m]);
+$("fMes").innerHTML = D.meses.map(m => `<option value="${m}">${NOMES_MES[m]} ${D.ano}${D.parcial && D.parcial.mes===m ? " (parcial)" : ""}</option>`).join("");
+$("fMes").value = mesesComVenda[mesesComVenda.length-1] || D.meses[D.meses.length-1];
+$("fLoja").innerHTML += D.lojas.map(l => `<option value="${esc(l)}">${esc(nomeLoja(l))}</option>`).join("");
 
 function render(){
-  const rows = LOJAS.map(calc)
+  const mes = $("fMes").value;
+  const todas = D.lojas.map(l => linha(l, mes)).filter(r => r.temDado || r.meta!=null);
+  const rows = todas
     .filter(r => !$("fLoja").value || r.loja===$("fLoja").value)
-    .filter(r => !$("fMeta").value || faixa(r.atingimento)===$("fMeta").value);
+    .filter(r => { const f=$("fMeta").value; return !f || (f==="none" ? r.meta==null : faixa(r.atingimento)===f); });
 
   const col = COLS.find(c => c.k===sortKey);
   rows.sort((a,b) => {
     const x=a[sortKey], y=b[sortKey];
-    if (x==null || x==="") return 1; if (y==null || y==="") return -1;
+    if (x==null || x==="") return (y==null || y==="") ? 0 : 1;
+    if (y==null || y==="") return -1;
     return (col.txt ? String(x).localeCompare(String(y),"pt-BR") : x-y) * sortDir;
   });
 
-  $("sub").innerHTML = `${esc(PERIODO)} · ${rows.length} de ${LOJAS.length} lojas` + (AMOSTRA ? '<span class="sample">dados de exemplo</span>' : "");
+  $("sub").textContent = `${NOMES_MES[mes]} ${D.ano} · ${rows.length} de ${todas.length} lojas`;
   $("ordem").innerHTML = `Ordenado por <b>${col.t}</b> · ` + (col.txt ? (sortDir>0 ? "A → Z" : "Z → A") : (sortDir<0 ? "maior primeiro" : "menor primeiro"));
 
-  const semVenda = rows.filter(r => !r.vendas).map(r => r.loja);
-  $("notice").textContent = semVenda.length ? `Sem vendas no período (penetration e retorno sem base): ${semVenda.join(", ")}.` : "";
+  const avisos = [];
+  if (D.parcial && D.parcial.mes===mes)
+    avisos.push(`${NOMES_MES[mes]} é parcial: retorno lançado até ${D.parcial.corte} (${D.parcial.diasDecorridos} de ${D.parcial.diasUteis} dias úteis, aba Painel). As bases de vendas ainda não têm ${NOMES_MES[mes].toLowerCase()}, por isso penetration, banco e retorno médio ficam vazios.`);
+  if (!D.faturamento[mes]) avisos.push(`O controle de notas fiscais não tem solicitações em ${NOMES_MES[mes].toLowerCase()}.`);
+  if (!Object.values(D.metas).some(m => m[mes]!=null) && !(D.parcial && D.parcial.mes===mes)) avisos.push(`A aba Metas só tem metas por loja para out, nov e dez.`);
+  const semVenda = rows.filter(r => r.vendas===0 || (r.vendas==null && D.porMes[mes])).map(r => r.nome);
+  if (semVenda.length) avisos.push(`Sem vendas no mês nas bases: ${semVenda.join(", ")}.`);
+  const semMes = Object.values(D.nfSemMes||{}).reduce((a,b) => a+b, 0);
+  if (semMes) avisos.push(`${brl.format(semMes)} em solicitações de NF sem data ficam fora de todos os meses.`);
+  $("notice").innerHTML = avisos.map(a => `<div>${esc(a)}</div>`).join("");
 
   $("head").innerHTML = COLS.map(c => {
     const on = c.k===sortKey;
@@ -230,70 +257,47 @@ function render(){
     return `<th tabindex="0" data-k="${c.k}" class="${on?"sorted":""} ${c.center?"center":""}" aria-sort="${on?(sortDir<0?"descending":"ascending"):"none"}">${c.t}${arr}</th>`;
   }).join("");
 
-  $("body").innerHTML = rows.length ? rows.map(r => "<tr>" + COLS.map(c => {
-    if (c.k==="loja") return `<td class="loja"><span class="wrap">${esc(r.loja)}<span class="go">&#8599;</span></span></td>`;
-    return `<td class="${c.cls||""} ${c.center?"center":""}">${c.f(r)}</td>`;
-  }).join("") + "</tr>").join("")
+  $("body").innerHTML = rows.length ? rows.map(r => "<tr>" + COLS.map(c =>
+    c.k==="nome" ? `<td class="loja">${esc(r.nome)}</td>` : `<td class="${c.center?"center":""}">${c.f(r)}</td>`
+  ).join("") + "</tr>").join("")
   : `<tr><td colspan="${COLS.length}" class="empty">Nenhuma loja com esses filtros.</td></tr>`;
 
-  // consolidado das lojas visíveis
   if (rows.length > 1){
-    const s = k => rows.reduce((t,r) => t + (r[k]||0), 0);
+    const soma = (k, lista=rows) => lista.reduce((t,r) => t + (r[k]||0), 0);
+    const temVenda = rows.some(r => r.vendas!=null);
     const bancos = {};
-    rows.forEach(r => { if (r.banco) bancos[r.banco] = (bancos[r.banco]||0) + r.contratosBanco; });
-    const topBanco = Object.entries(bancos).sort((a,b) => b[1]-a[1])[0];
-    const tot = calc({loja:"Consolidado", faturamento:s("faturamento"), meta:s("meta"), fichas:s("fichas"),
-      aprovadas:s("aprovadas"), vendas:s("vendas"), financiadas:s("financiadas"),
-      banco: topBanco ? topBanco[0] : "", contratosBanco: topBanco ? topBanco[1] : 0, retorno:s("retorno")});
-    $("foot").innerHTML = "<tr>" + COLS.map(c => c.k==="loja" ? "<td>Consolidado</td>" : `<td class="${c.center?"center":""}">${c.f(tot)}</td>`).join("") + "</tr>";
+    rows.forEach(r => { const v=(D.porMes[mes]||{})[r.loja]; if (v) Object.entries(v.bancos).forEach(([b,n]) => bancos[b]=(bancos[b]||0)+n); });
+    const top = Object.entries(bancos).sort((a,b) => b[1]-a[1])[0];
+    const comMeta = rows.filter(r => r.meta!=null);
+    const tipos = {};
+    rows.forEach(r => r.fatTipos && Object.entries(r.fatTipos).forEach(([k,v]) => tipos[k]=(tipos[k]||0)+v));
+    const retornoBase = rows.reduce((t,r) => { const v=(D.porMes[mes]||{})[r.loja]; return t + (v ? v.retorno : 0); }, 0);
+    const tot = {
+      faturamento: rows.some(r => r.faturamento!=null) ? soma("faturamento") : null, fatTipos: tipos, fatPend: soma("fatPend"),
+      vendas: temVenda ? soma("vendas") : null, financiadas: temVenda ? soma("financiadas") : null,
+      banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
+      retorno: soma("retorno", comMeta), meta: comMeta.length ? soma("meta", comMeta) : null, projecao: null,
+    };
+    tot.penetration = temVenda ? div(tot.financiadas, tot.vendas) : null;
+    tot.atingimento = div(tot.retorno, tot.meta);
+    tot.retornoMedio = temVenda ? div(retornoBase, tot.financiadas) : null;
+    $("foot").innerHTML = "<tr>" + COLS.map(c => c.k==="nome" ? "<td>Consolidado</td>" : `<td class="${c.center?"center":""}">${c.f(tot)}</td>`).join("") + "</tr>";
   } else $("foot").innerHTML = "";
 
   document.querySelectorAll("#head th").forEach(th => {
-    const go = () => { const k = th.dataset.k; if (k===sortKey) sortDir*=-1; else { sortKey=k; sortDir = COLS.find(c=>c.k===k).txt ? 1 : -1; } render(); };
+    const go = () => { const k=th.dataset.k; if (k===sortKey) sortDir*=-1; else { sortKey=k; sortDir = COLS.find(c=>c.k===k).txt ? 1 : -1; } render(); };
     th.onclick = go;
     th.onkeydown = e => { if (e.key==="Enter" || e.key===" "){ e.preventDefault(); go(); } };
   });
 }
 
-// ===== importação de CSV =====
-function parseNum(v){
-  if (v==null) return 0;
-  let s = String(v).trim().replace(/R\$\s?/i,"").replace(/\s/g,"");
-  if (!s) return 0;
-  if (s.includes(",")) s = s.replace(/\./g,"").replace(",",".");
-  const n = Number(s); return isFinite(n) ? n : 0;
-}
-function importCsv(text){
-  const lines = text.replace(/^﻿/,"").split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) throw new Error("CSV vazio.");
-  const sep = lines[0].includes(";") ? ";" : ",";
-  const head = lines[0].split(sep).map(h => h.trim().toLowerCase());
-  const idx = n => head.indexOf(n);
-  const need = ["loja","faturamento","meta","fichas","aprovadas","vendas","financiadas","banco","contratos_banco","retorno_total"];
-  const falta = need.filter(n => idx(n) < 0);
-  if (falta.length) throw new Error("Faltam colunas: " + falta.join(", "));
-  const periodoIdx = idx("periodo");
-  const out = lines.slice(1).map(l => {
-    const c = l.split(sep);
-    if (periodoIdx >= 0 && c[periodoIdx]) PERIODO = c[periodoIdx].trim();
-    return {loja:c[idx("loja")].trim(), faturamento:parseNum(c[idx("faturamento")]), meta:parseNum(c[idx("meta")]),
-      fichas:parseNum(c[idx("fichas")]), aprovadas:parseNum(c[idx("aprovadas")]), vendas:parseNum(c[idx("vendas")]),
-      financiadas:parseNum(c[idx("financiadas")]), banco:(c[idx("banco")]||"").trim(),
-      contratosBanco:parseNum(c[idx("contratos_banco")]), retorno:parseNum(c[idx("retorno_total")])};
-  }).filter(r => r.loja);
-  if (!out.length) throw new Error("Nenhuma loja no CSV.");
-  LOJAS = out; AMOSTRA = false;
-}
-$("btnImport").onclick = () => $("file").click();
-$("file").onchange = e => {
-  const f = e.target.files[0]; if (!f) return;
-  f.text().then(t => { try { importCsv(t); fillLojas(); render(); } catch(err){ alert("Não consegui ler o CSV: " + err.message); } });
-  e.target.value = "";
-};
-$("fLoja").onchange = render;
-$("fMeta").onchange = render;
+$("grupo").innerHTML = (D.metaGrupo||[]).map(g => {
+  const p = div(g.real, g.meta), s = faixa(p);
+  const v = x => x==null ? DASH : brl.format(x);
+  return `<tr><td class="loja">${NOMES_MES[g.mes]}</td><td>${v(g.meta)}</td><td>${v(g.orcado1)}</td><td>${v(g.orcado2)}</td><td><b>${v(g.real)}</b></td><td class="center">${p==null ? DASH : `<span class="st ${s}">${ICON[s]} ${pct(p)}</span>`}</td></tr>`;
+}).join("");
 
-fillLojas();
+["fMes","fLoja","fMeta"].forEach(id => $(id).onchange = render);
 render();
 </script>
 </body>
