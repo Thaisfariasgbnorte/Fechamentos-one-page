@@ -151,7 +151,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
         <li><b>% aprovação</b>: nenhuma das planilhas traz fichas enviadas e aprovadas pelos bancos, então a coluna fica vazia até esse dado existir.</li>
         <li><b>Penetration</b>: coluna “Positivação F&amp;I (%)” da aba RELATÓRIO do Indicador Diário (financiamentos internos ÷ vendas totais).</li>
         <li>A aba RELATÓRIO mostra um mês por vez (hoje, outubro). Nos outros meses a página usa a mesma conta da aba aplicada às bases LINX REL VENDAS e NBS REL VENDAS (loja = coluna “estoque tipo”); no mês da aba, os números são idênticos.</li>
-        <li><b>Principal banco</b>: banco com mais financiamentos internos no mês.</li>
+        <li><b>Principal banco</b>: banco que mais aparece no mês na coluna D (Banco) da aba LINX REL VENDAS e na coluna E (BANCO) da aba NBS REL VENDAS do Indicador Diário, com a loja das colunas K e M (“estoque tipo”). Contam todas as vendas com banco (interno, externo e consórcio); “À VISTA”, vazio e “EXTERNO” não contam.</li>
         <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja (aba Metas do Indicador de Metas, que só tem out, nov e dez). Em novembro o realizado é o da aba Painel, parcial até a data de corte, e a cor segue a projeção de fim de mês (como o Status do Painel). Nomes da aba Metas: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
         <li><b>Retorno médio</b>: retorno F&amp;I ÷ financiamentos internos (o “unit” do resumo do Indicador Diário). Retorno = LINX RES VEIC VEND FI + NBS REL VENDAS.</li>
         <li>Na linha <b>Consolidado</b> as taxas são recalculadas sobre os totais; o atingimento usa só as lojas que têm meta.</li>
@@ -190,7 +190,7 @@ function linha(loja, mes){
     aprovacao: null,
     vendas: v ? v.vendas : null, financiadas: v ? v.financiadas : null,
     penetration: v ? (v.positivacao ?? div(v.financiadas, v.vendas)) : null,
-    banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
+    banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0, comBanco: bancos.reduce((t,[,n]) => t+n, 0),
     retorno, meta: meta ?? null, atingimento: div(retorno, meta),
     projecao: parcial ? parcial.pctProjecao : null,
     retornoMedio: v ? div(v.retorno, v.financiadas) : null,
@@ -203,7 +203,7 @@ const COLS = [
   {k:"faturamento", t:"Faturamento", tip:"Volume Financ. Interno (R$) — aba RELATÓRIO", f:r => r.faturamento==null ? DASH : `<b>${brl.format(r.faturamento)}</b>`},
   {k:"aprovacao", t:"% aprovação", f:() => '<span class="na">sem dado</span>'},
   {k:"penetration", t:"Penetration", tip:"Positivação F&I (%) — aba RELATÓRIO", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
-  {k:"banco", t:"Principal banco", txt:true, f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.financiadas} contratos</small>` : DASH},
+  {k:"banco", t:"Principal banco", txt:true, tip:"LINX REL VENDAS col. D + NBS REL VENDAS col. E, por loja (col. K / M)", f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.comBanco} vendas com banco</small>` : DASH},
   {k:"atingimento", t:"% atingimento meta", center:true, f:r => {
     if (r.meta==null) return '<span class="na">sem meta</span>';
     const s = faixa(r.projecao ?? r.atingimento); // mês parcial: cor pela projeção, como o Status do Painel
@@ -266,7 +266,7 @@ function render(){
     const tot = {
       faturamento: rows.some(r => r.faturamento!=null) ? soma("faturamento") : null,
       vendas: temVenda ? soma("vendas") : null, financiadas: temVenda ? soma("financiadas") : null,
-      banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0,
+      banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0, comBanco: Object.values(bancos).reduce((t,n) => t+n, 0),
       retorno: soma("retorno", comMeta), meta: comMeta.length ? soma("meta", comMeta) : null, projecao: null,
     };
     tot.penetration = temVenda ? div(tot.financiadas, tot.vendas) : null;

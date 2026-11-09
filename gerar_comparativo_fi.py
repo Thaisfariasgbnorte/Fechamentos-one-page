@@ -13,7 +13,8 @@ De onde vem cada coluna (por loja = coluna "estoque tipo" das bases):
   (a aba RELATÓRIO mostra um mês por vez; para os outros meses o gerador aplica a mesma conta
    da aba às bases LINX REL VENDAS + NBS REL VENDAS: financ. interno ÷ vendas totais e soma do valor
    financiado interno, e confere que bate com a aba no mês que ela mostra)
-- Principal banco .... banco com mais financiamentos INTERNOS no mês
+- Principal banco .... banco que mais aparece no mês: LINX REL VENDAS col D (Banco) e NBS REL VENDAS
+                       col E (BANCO), loja = col K / col M ("estoque tipo"); ignora À VISTA, vazio e EXTERNO
 - Retorno ............ LINX RES VEIC VEND FI "Retorno" + NBS REL VENDAS "RETORNO6"
 - Retorno médio ...... retorno ÷ financiamentos internos (o "unit" da aba de resumo)
 - % atingimento meta . retorno ÷ meta da loja (aba Metas do Indicador de Metas; nov = aba Painel)
@@ -56,6 +57,16 @@ def linhas(ws):
     return [dict(zip(cab, r)) for r in it if any(v is not None for v in r)]
 
 
+SEM_BANCO = {"", "À VISTA", "A VISTA", "EXTERNO"}
+
+
+def conta_banco(a, banco):
+    """Principal banco: toda venda com banco na coluna de banco, qualquer que seja o tipo."""
+    banco = str(banco or "").strip().upper()
+    if banco not in SEM_BANCO:
+        a["bancos"][banco] += 1
+
+
 def ler_vendas(xlsx):
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     base = defaultdict(lambda: defaultdict(lambda: {"vendas": 0, "financiadas": 0,
@@ -74,7 +85,7 @@ def ler_vendas(xlsx):
         if r.get("Tipo") == "INTERNO":
             a["financiadas"] += 1
             a["volume"] += num(r.get("Valor Financ"))
-            a["bancos"][r.get("Banco") or "SEM BANCO"] += 1
+        conta_banco(a, r.get("Banco"))  # col D (loja = col K "estoque tipo")
 
     for r in linhas(wb["NBS REL VENDAS"]):
         if r.get("MÊS") not in MESES or not r.get("estoque tipo"):
@@ -86,7 +97,7 @@ def ler_vendas(xlsx):
         if r.get("Tipo") == "INTERNO":
             a["financiadas"] += 1
             a["volume"] += num(r.get("VAL. FINANC"))
-            a["bancos"][r.get("BANCO") or "SEM BANCO"] += 1
+        conta_banco(a, r.get("BANCO"))  # col E (loja = col M "estoque tipo")
 
     for r in linhas(wb["LINX RES VEIC VEND FI"]):
         if r.get("MÊS") not in MESES or not r.get("estoque tipo"):
