@@ -1,7 +1,7 @@
 """Gera o Comparativo F&I entre lojas (comparativo_financiamento.html) a partir das planilhas de F&I.
 
 Uso:
-    python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI.xlsx Indicador_Metas.xlsx META_FI_2026.xlsx \
+    python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI.xlsx METAS_BI_2026.xlsx \
         CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx [saida.html]
 
 Lê só os valores já calculados (salve as planilhas no Excel antes de rodar).
@@ -18,7 +18,8 @@ De onde vem cada coluna (por loja = coluna "estoque tipo" das bases):
 - Retorno ............ LINX RES VEIC VEND FI "Retorno" + NBS REL VENDAS "RETORNO6"
 - Retorno médio ...... "Retorno F&I Gerado (R$)" (col G) ÷ "Financ. Interno (Qtd)" (col D) da aba RELATÓRIO;
                        nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI (é o que a col G soma)
-- % atingimento meta . retorno ÷ meta da loja (aba Metas do Indicador de Metas; nov = aba Painel)
+- % atingimento meta . retorno ÷ meta da loja (METAS BI 2026; meta 0 = sem meta)
+- Meta do grupo ...... linha de total da METAS BI 2026 x real de retorno (aba Resumo do controle de NFs)
 - % aprovação ........ as planilhas não têm fichas enviadas/aprovadas -> fica "—"
 """
 import json
@@ -38,6 +39,8 @@ LOJA_META = {
     "VOLVO MANAUS": "VOLVO MANAUS",
     "MG MANAUS": "MG MANAUS",
     "VOLVO BELÉM": "VOLVO BELEM",
+    "VOLVO BELEM": "VOLVO BELEM",
+    "GB SELECT": "GB SELECT (MANAUS, BOA VISTA E BELÉM)",
     "MIT BOA VISTA": "MITSUBISHI BOA VISTA",
     "OMODA BOA VISTA": "OMODA BOA VISTA",
     "GWM BOA VISTA": "GWM BOA VISTA",
@@ -118,53 +121,24 @@ def ler_vendas(xlsx):
     return por_mes, ano
 
 
-def ler_metas(xlsx):
-    wb = openpyxl.load_workbook(xlsx, data_only=True)
-    ws = wb["Metas"]
-    cab = {str(ws.cell(4, c).value).strip().upper(): c for c in range(3, ws.max_column + 1)
-           if ws.cell(4, c).value}
-    metas = defaultdict(dict)
-    for r in range(5, ws.max_row + 1):
-        nome = ws.cell(r, 2).value
-        if nome not in LOJA_META:
-            continue
-        for mes, c in cab.items():
-            if mes in MESES and isinstance(ws.cell(r, c).value, (int, float)):
-                metas[LOJA_META[nome]][mes] = ws.cell(r, c).value
-
-    # Painel: realizado parcial do mês corrente
-    p = wb["Painel"]
-    titulo = str(p["A1"].value or "")
-    mes_painel = next((MESES[i] for i, m in enumerate(MESES_EXTENSO)
-                       if m.lower() in titulo.lower()), None)
-    corte = p["C3"].value
-    parcial = {
-        "mes": mes_painel,
-        "corte": corte.strftime("%d/%m/%Y") if hasattr(corte, "strftime") else corte,
-        "diasUteis": p["C4"].value, "diasDecorridos": p["C5"].value,
-        "lojas": {},
-    }
-    for r in range(9, p.max_row + 1):
-        nome = p.cell(r, 2).value
-        if nome in LOJA_META:
-            parcial["lojas"][LOJA_META[nome]] = {
-                "meta": p.cell(r, 3).value, "realizado": p.cell(r, 4).value,
-                "projecao": p.cell(r, 6).value, "pctProjecao": p.cell(r, 7).value,
-            }
-    return dict(metas), parcial
-
-
-def ler_meta_grupo(xlsx):
-    ws = openpyxl.load_workbook(xlsx, data_only=True)["META"]
-    out = []
+def ler_metas_bi(xlsx):
+    """METAS BI 2026: linha 1 = meses (SET, OUT...), coluna C = loja; linha sem loja = total do grupo.
+    Meta 0 conta como "sem meta" (não dá para medir atingimento)."""
+    ws = openpyxl.load_workbook(xlsx, data_only=True).worksheets[0]
+    cab = {c: str(ws.cell(1, c).value).strip().upper() for c in range(1, ws.max_column + 1)
+           if str(ws.cell(1, c).value or "").strip().upper() in MESES}
+    metas, grupo = defaultdict(dict), {}
     for r in range(2, ws.max_row + 1):
-        mes = str(ws.cell(r, 2).value or "").strip().upper()
-        if mes not in MESES_EXTENSO:
-            continue
-        val = lambda c: ws.cell(r, c).value if isinstance(ws.cell(r, c).value, (int, float)) else None
-        real = val(4) or None  # célula vazia/zero = mês ainda não fechado
-        out.append({"mes": MESES[MESES_EXTENSO.index(mes)], "meta": val(3), "real": real})
-    return out
+        nome = str(ws.cell(r, 3).value or "").strip().upper()
+        vals = {mes: ws.cell(r, c).value for c, mes in cab.items() if isinstance(ws.cell(r, c).value, (int, float))}
+        if not nome:
+            grupo.update(vals)
+        elif nome in LOJA_META:
+            metas[LOJA_META[nome]].update({m: v for m, v in vals.items() if v})
+        elif vals:
+            print(f"AVISO: loja {nome!r} da METAS BI sem correspondência nas bases (ignorada)")
+    meta_grupo = [{"mes": m, "meta": grupo[m]} for m in MESES if m in grupo]
+    return dict(metas), meta_grupo
 
 
 def ler_retorno_nf(xlsx):
@@ -196,7 +170,7 @@ def ler_relatorio(xlsx):
     return (mes if mes in MESES else None), out
 
 
-def main(diario, metas_xlsx, meta_fi, notas, saida):
+def main(diario, metas_bi, notas, saida):
     por_mes, ano = ler_vendas(diario)
     mes_rel, rel = ler_relatorio(diario)
     if mes_rel:
@@ -208,27 +182,27 @@ def main(diario, metas_xlsx, meta_fi, notas, saida):
                 print(f"AVISO: {loja} {mes_rel}: bases {a['vendas']}/{a['financiadas']}/{a['volume']} "
                       f"/{a['retornoRel']} x RELATÓRIO {v['vendas']}/{v['financiadas']}/{v['volume']}/{v['retornoRel']} (vale o RELATÓRIO)")
             a.update(v)  # no mês da aba RELATÓRIO valem os números da própria aba
-    metas, parcial = ler_metas(metas_xlsx)
+    metas, meta_grupo = ler_metas_bi(metas_bi)
     lojas = sorted({l for m in por_mes.values() for l in m} | set(metas))
     dados = {
         "ano": ano,
-        "meses": [m for m in MESES if m in por_mes or m == parcial["mes"]],
+        "meses": [m for m in MESES if m in por_mes],
         "lojas": lojas,
         "porMes": por_mes,
         "mesRelatorio": mes_rel,
         "metas": metas,
-        "parcial": parcial,
-        "metaGrupo": ler_meta_grupo(meta_fi),
+        "parcial": None,
+        "metaGrupo": meta_grupo,
         "retornoNF": ler_retorno_nf(notas),
     }
     template = (Path(__file__).parent / "template_comparativo_fi.html").read_text(encoding="utf-8")
     html = template.replace("/*__DADOS__*/null", json.dumps(dados, ensure_ascii=False))
     Path(saida).write_text(html, encoding="utf-8")
     print(f"OK: {saida}  ({len(lojas)} lojas, meses com vendas: {', '.join(m for m in MESES if m in por_mes)}; "
-          f"parcial: {parcial['mes']} até {parcial['corte']})")
+          f"metas: {', '.join(g['mes'] for g in meta_grupo)})")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 4:
         sys.exit(__doc__)
-    main(*sys.argv[1:5], sys.argv[5] if len(sys.argv) > 5 else "comparativo_financiamento.html")
+    main(*sys.argv[1:4], sys.argv[4] if len(sys.argv) > 4 else "comparativo_financiamento.html")

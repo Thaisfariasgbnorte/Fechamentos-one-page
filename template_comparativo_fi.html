@@ -145,18 +145,18 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
  </div>
  <div id="folha2">
   <div class="grupo">
-    <h2>Meta F&amp;I do grupo</h2>
-    <p>Meta e realizado da planilha META F&amp;I 2026 (aba META). Real de retorno: linha RETORNO do quadro “4) Por tipo” da aba Resumo do Controle de Solicitações de Notas Fiscais.</p>
+    <h2>Meta de retorno do grupo</h2>
+    <p>Meta: linha de total da planilha METAS BI 2026. Real de retorno: linha RETORNO do quadro “4) Por tipo” da aba Resumo do Controle de Solicitações de Notas Fiscais.</p>
     <div class="scroll" style="border:0">
       <table>
-        <thead><tr><th>Mês</th><th>Meta</th><th>Realizado</th><th class="center">% da meta</th><th>Real de retorno</th><th class="center">Retorno ÷ meta</th></tr></thead>
+        <thead><tr><th>Mês</th><th>Meta</th><th>Real de retorno</th><th class="center">Retorno ÷ meta</th></tr></thead>
         <tbody id="grupo"></tbody>
       </table>
     </div>
   </div>
 
   <div class="foot">
-    <b>Faixas da meta:</b> verde ≥ 100% · amarelo 90–99% · vermelho &lt; 90% (as mesmas do Indicador de Metas).
+    <b>Faixas da meta:</b> verde ≥ 100% · amarelo 90–99% · vermelho &lt; 90%.
     <details>
       <summary>Como ler os indicadores e de onde vêm os números</summary>
       <ul>
@@ -166,7 +166,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
         <li><b>Penetration</b>: coluna “Positivação F&amp;I (%)” da aba RELATÓRIO do Indicador Diário (financiamentos internos ÷ vendas totais).</li>
         <li>A aba RELATÓRIO mostra um mês por vez (hoje, outubro). Nos outros meses a página usa a mesma conta da aba aplicada às bases LINX REL VENDAS e NBS REL VENDAS (loja = coluna “estoque tipo”); no mês da aba, os números são idênticos.</li>
         <li><b>Principal banco</b>: banco que mais aparece no mês na coluna D (Banco) da aba LINX REL VENDAS e na coluna E (BANCO) da aba NBS REL VENDAS do Indicador Diário, com a loja das colunas K e M (“estoque tipo”). Contam todas as vendas com banco (interno, externo e consórcio); “À VISTA”, vazio e “EXTERNO” não contam.</li>
-        <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja (aba Metas do Indicador de Metas, que só tem out, nov e dez). Em novembro o realizado é o da aba Painel, parcial até a data de corte, e a cor segue a projeção de fim de mês (como o Status do Painel). Nomes da aba Metas: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
+        <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja da planilha METAS BI 2026 (set a dez). Loja com meta 0 ou fora da planilha aparece “sem meta”. Nomes da planilha: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
         <li><b>Retorno médio</b>: coluna G “Retorno F&amp;I Gerado (R$)” ÷ coluna D “Financ. Interno (Qtd)” da aba RELATÓRIO do Indicador Diário. Nos outros meses, a mesma conta com o retorno da aba LINX RES VEIC VEND FI, que é o que a coluna G soma.</li>
         <li>O retorno do <b>% atingimento meta</b> soma LINX RES VEIC VEND FI e NBS REL VENDAS.</li>
         <li>Na linha <b>Consolidado</b> as taxas são recalculadas sobre os totais; o atingimento usa só as lojas que têm meta.</li>
@@ -277,7 +277,7 @@ function render(){
   const avisos = [];
   if (D.parcial && D.parcial.mes===mes)
     avisos.push(`${NOMES_MES[mes]} é parcial: retorno lançado até ${D.parcial.corte} (${D.parcial.diasDecorridos} de ${D.parcial.diasUteis} dias úteis, aba Painel). As bases de vendas ainda não têm ${NOMES_MES[mes].toLowerCase()}, por isso penetration, banco e retorno médio ficam vazios.`);
-  if (!Object.values(D.metas).some(m => m[mes]!=null) && !(D.parcial && D.parcial.mes===mes)) avisos.push(`A aba Metas só tem metas por loja para out, nov e dez.`);
+  if (!Object.values(D.metas).some(m => m[mes]!=null) && !(D.parcial && D.parcial.mes===mes)) avisos.push(`A planilha METAS BI 2026 só tem metas por loja de setembro a dezembro.`);
   const semVenda = rows.filter(r => r.vendas===0 || (r.vendas==null && D.porMes[mes])).map(r => r.nome);
   if (semVenda.length) avisos.push(`Sem vendas no mês nas bases: ${semVenda.join(", ")}.`);
   $("notice").innerHTML = avisos.map(a => `<div>${esc(a)}</div>`).join("");
@@ -324,11 +324,12 @@ function render(){
   });
 }
 
-$("grupo").innerHTML = (D.metaGrupo||[]).map(g => {
+const metaDoMes = Object.fromEntries((D.metaGrupo||[]).map(g => [g.mes, g.meta]));
+const mesesGrupo = MESES_ORDEM.filter(m => m in metaDoMes || (D.retornoNF||{})[m] != null);
+$("grupo").innerHTML = mesesGrupo.map(m => {
   const v = x => x==null ? DASH : brl.format(x);
-  const chip = p => { const s = faixa(p); return p==null ? DASH : `<span class="st ${s}">${ICON[s]} ${pct(p)}</span>`; };
-  const ret = (D.retornoNF||{})[g.mes] ?? null;
-  return `<tr><td class="loja">${NOMES_MES[g.mes]}</td><td>${v(g.meta)}</td><td>${v(g.real)}</td><td class="center">${chip(div(g.real, g.meta))}</td><td><b>${v(ret)}</b></td><td class="center">${chip(div(ret, g.meta))}</td></tr>`;
+  const meta = metaDoMes[m] ?? null, ret = (D.retornoNF||{})[m] ?? null, p = div(ret, meta), s = faixa(p);
+  return `<tr><td class="loja">${NOMES_MES[m]}</td><td>${v(meta)}</td><td><b>${v(ret)}</b></td><td class="center">${p==null ? DASH : `<span class="st ${s}">${ICON[s]} ${pct(p)}</span>`}</td></tr>`;
 }).join("");
 
 ["fMes","fLoja","fMeta"].forEach(id => $(id).onchange = render);

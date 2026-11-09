@@ -42,8 +42,8 @@ visão escolhidos. Escolhendo uma loja, todas as tabelas mostram só aquela loja
 principal banco, % atingimento da meta e retorno médio, só com números das planilhas de F&I:
 
 ```bash
-python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx Indicador_Metas_Novembro_2026.xlsx \
-    META_FI_2026.xlsx CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx comparativo_financiamento.html
+python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx METAS_BI_2026.xlsx \
+    CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx comparativo_financiamento.html
 ```
 
 - **Faturamento**: "Volume Financ. Interno (R$)" da aba RELATÓRIO do Indicador Diário.
@@ -53,12 +53,12 @@ python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx Indicador_Meta
   (loja = col. K / col. M "estoque tipo"); ignora À VISTA, vazio e EXTERNO.
 - **Retorno médio**: "Retorno F&I Gerado (R$)" (col. G) ÷ "Financ. Interno (Qtd)" (col. D) da aba RELATÓRIO;
   nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI.
-- **% atingimento meta**: retorno ÷ meta da loja (aba Metas: out, nov, dez; novembro parcial pela aba Painel).
+- **% atingimento meta**: retorno ÷ meta da loja (METAS BI 2026, set a dez; meta 0 = sem meta).
 - **% aprovação**: nenhuma planilha tem fichas enviadas/aprovadas, então a coluna fica "sem dado".
 - **Var. MA**: faturamento contra o mês anterior, com seta (▲ subiu, ▼ caiu).
 - **Gerar PDF**: botão no topo; gera 2 páginas A4 paisagem (comparativo e meta do grupo) do mês escolhido.
 - Publicado em https://claude.ai/artifact/VdxkL4QVbPLk9HwsPmrkZY (o arquivo gerado já é a página publicada).
-- Embaixo, a meta F&I do grupo (META F&I 2026: meta e realizado) e o real de retorno
+- Embaixo, a meta do grupo (total da METAS BI 2026) e o real de retorno
   (linha RETORNO do quadro "4) POR TIPO" da aba Resumo do controle de notas fiscais).
 
 ## Arquivos
