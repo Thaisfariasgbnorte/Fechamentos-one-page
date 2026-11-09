@@ -1,9 +1,5 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Comparativo entre Lojas</title>
+<title>Comparativo F&amp;I GB Norte</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -36,7 +32,8 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px 16px 40px}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+table{font-size:inherit}
 .card{max-width:1180px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px 10px;flex-wrap:wrap}
 .eyebrow{color:var(--eyebrow);font-size:12px;font-weight:600}
@@ -91,15 +88,29 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
 .grupo table{min-width:620px}
 .grupo th{cursor:default}
 .notice div+div{margin-top:3px}
+.var{display:inline-flex;align-items:center;gap:3px;font-weight:600;font-size:12.5px;white-space:nowrap}
+.var.up{color:var(--good)} .var.down{color:var(--bad)} .var.flat{color:var(--muted)}
+.acoes{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.btn-pdf{font:600 13px "Public Sans",system-ui,sans-serif;color:var(--surface);background:var(--ink);border:1px solid var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn-pdf:hover{background:var(--chip-ink);border-color:var(--chip-ink)}
+.btn-pdf:focus-visible{outline:2px solid var(--eyebrow);outline-offset:2px}
+.btn-pdf:disabled{opacity:.55;cursor:progress}
+.pdf-status{font-size:11.5px;color:var(--muted);min-height:1em}
+/* aplicado só na cópia usada para gerar o PDF */
+.pdf .filters,.pdf .acoes,.pdf .meta-line span:last-child,.pdf details{display:none}
+.pdf .scroll{overflow:visible}
 </style>
-</head>
-<body>
 <div class="card">
+ <div id="folha1">
   <div class="top">
     <div>
       <div class="eyebrow">Performance por unidade · F&amp;I</div>
       <h1>Comparativo entre lojas</h1>
       <div class="sub" id="sub"></div>
+    </div>
+    <div class="acoes">
+      <button type="button" class="btn-pdf" id="btnPdf">Gerar PDF</button>
+      <span class="pdf-status" id="pdfStatus" aria-live="polite"></span>
     </div>
   </div>
 
@@ -131,6 +142,8 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
     </table>
   </div>
 
+ </div>
+ <div id="folha2">
   <div class="grupo">
     <h2>Meta F&amp;I do grupo</h2>
     <p>Meta e realizado da planilha META F&amp;I 2026 (aba META). Real de retorno: linha RETORNO do quadro “4) Por tipo” da aba Resumo do Controle de Solicitações de Notas Fiscais.</p>
@@ -148,6 +161,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
       <summary>Como ler os indicadores e de onde vêm os números</summary>
       <ul>
         <li><b>Faturamento</b>: coluna “Volume Financ. Interno (R$)” da aba RELATÓRIO do Indicador Diário.</li>
+        <li><b>Var. MA</b>: variação do faturamento contra o mês anterior (&#9650; subiu, &#9660; caiu); embaixo, o faturamento do mês anterior.</li>
         <li><b>% aprovação</b>: nenhuma das planilhas traz fichas enviadas e aprovadas pelos bancos, então a coluna fica vazia até esse dado existir.</li>
         <li><b>Penetration</b>: coluna “Positivação F&amp;I (%)” da aba RELATÓRIO do Indicador Diário (financiamentos internos ÷ vendas totais).</li>
         <li>A aba RELATÓRIO mostra um mês por vez (hoje, outubro). Nos outros meses a página usa a mesma conta da aba aplicada às bases LINX REL VENDAS e NBS REL VENDAS (loja = coluna “estoque tipo”); no mês da aba, os números são idênticos.</li>
@@ -160,6 +174,7 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
       </ul>
     </details>
   </div>
+ </div>
 </div>
 
 <script>
@@ -188,6 +203,7 @@ function linha(loja, mes){
   return {
     loja, nome: nomeLoja(loja),
     faturamento: v ? v.volume : null,
+    ...varMes(loja, mes, v),
     aprovacao: null,
     vendas: v ? v.vendas : null, financiadas: v ? v.financiadas : null,
     penetration: v ? (v.positivacao ?? div(v.financiadas, v.vendas)) : null,
@@ -200,9 +216,29 @@ function linha(loja, mes){
   };
 }
 
+// variação do faturamento contra o mês anterior (Var. MA)
+function mesAnterior(mes){ const i = MESES_ORDEM.indexOf(mes); return i > 0 ? MESES_ORDEM[i-1] : null; }
+const MESES_ORDEM = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+function varMes(loja, mes, v){
+  const ant = mesAnterior(mes), va = ant && D.porMes[ant] ? D.porMes[ant][loja] : undefined;
+  if (!v || !ant || !D.porMes[ant]) return {fatAnt: null, varMA: null, mesAnt: ant};
+  const fatAnt = va ? va.volume : 0;
+  return {fatAnt, varMA: fatAnt ? (v.volume - fatAnt) / fatAnt : null, mesAnt: ant};
+}
+function celVar(r){
+  if (r.fatAnt == null) return DASH;
+  const ant = `${NOMES_MES[r.mesAnt].slice(0,3).toLowerCase()}: ${brl0.format(r.fatAnt)}`;
+  if (r.varMA == null) return `${r.faturamento ? '<span class="var up">&#9650; novo</span>' : DASH}<small>${ant}</small>`;
+  const cls = r.varMA > 0.0005 ? "up" : r.varMA < -0.0005 ? "down" : "flat";
+  const seta = {up:"&#9650;", down:"&#9660;", flat:"&#9644;"}[cls];
+  const txt = (r.varMA > 0 ? "+" : "") + (r.varMA*100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "%";
+  return `<span class="var ${cls}">${seta} ${txt}</span><small>${ant}</small>`;
+}
+
 const COLS = [
   {k:"nome", t:"Loja", txt:true},
   {k:"faturamento", t:"Faturamento", tip:"Volume Financ. Interno (R$) — aba RELATÓRIO", f:r => r.faturamento==null ? DASH : `<b>${brl.format(r.faturamento)}</b>`},
+  {k:"varMA", t:"Var. MA", tip:"Faturamento contra o mês anterior", f:celVar},
   {k:"aprovacao", t:"% aprovação", f:() => '<span class="na">sem dado</span>'},
   {k:"penetration", t:"Penetration", tip:"Positivação F&I (%) — aba RELATÓRIO", f:r => r.penetration==null ? DASH : `<span class="chip">${pct(r.penetration)}</span><small>${r.financiadas} de ${r.vendas} vendas</small>`},
   {k:"banco", t:"Principal banco", txt:true, tip:"LINX REL VENDAS col. D + NBS REL VENDAS col. E, por loja (col. K / M)", f:r => r.banco ? `${esc(r.banco)}<small>${r.bancoQtd} de ${r.comBanco} vendas com banco</small>` : DASH},
@@ -271,6 +307,10 @@ function render(){
       retorno: soma("retorno", comMeta), meta: comMeta.length ? soma("meta", comMeta) : null, projecao: null,
     };
     tot.penetration = temVenda ? div(tot.financiadas, tot.vendas) : null;
+    const comAnt = rows.filter(r => r.fatAnt != null);
+    tot.mesAnt = mesAnterior(mes);
+    tot.fatAnt = comAnt.length ? soma("fatAnt", comAnt) : null;
+    tot.varMA = tot.fatAnt ? (soma("faturamento", comAnt) - tot.fatAnt) / tot.fatAnt : null;
     tot.atingimento = div(tot.retorno, tot.meta);
     tot.retornoRel = soma("retornoRel");
     tot.retornoMedio = temVenda ? div(tot.retornoRel, tot.financiadas) : null;
@@ -292,7 +332,54 @@ $("grupo").innerHTML = (D.metaGrupo||[]).map(g => {
 }).join("");
 
 ["fMes","fLoja","fMeta"].forEach(id => $(id).onchange = render);
+
+// ---- Gerar PDF: A4 paisagem, página 1 = comparativo, página 2 = meta do grupo ----
+const carregar = src => new Promise((ok, erro) => {
+  const el = document.createElement("script"); el.src = src; el.onload = ok;
+  el.onerror = () => erro(new Error("Não foi possível carregar " + src));
+  document.head.appendChild(el);
+});
+async function gerarPdf(){
+  if (!window.html2canvas) await carregar("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+  if (!window.jspdf) await carregar("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  const pdf = new window.jspdf.jsPDF({orientation: "landscape", unit: "mm", format: "a4"});
+  const W = 297, H = 210, M = 8, LARG = 1180;
+  const canvases = [];
+  for (const id of ["folha1", "folha2"]) canvases.push(await html2canvas($(id), {
+    scale: 2, backgroundColor: "#ffffff", windowWidth: LARG + 40, width: LARG,
+    onclone: doc => {
+      doc.documentElement.setAttribute("data-theme", "light"); // PDF sempre claro
+      doc.body.classList.add("pdf");
+      const f = doc.getElementById(id); f.style.width = LARG + "px"; f.style.background = "#ffffff";
+    },
+  }));
+  const r = Math.min(...canvases.map(c => Math.min((W - 2*M) / c.width, (H - 2*M) / c.height)));
+  canvases.forEach((c, i) => {
+    if (i) pdf.addPage();
+    const w = c.width * r, h = c.height * r;
+    pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", (W - w) / 2, M, w, h);
+  });
+  return pdf;
+}
+$("btnPdf").onclick = async () => {
+  const st = $("pdfStatus"), mes = $("fMes").value;
+  const nome = `Comparativo F&I ${NOMES_MES[mes]} ${D.ano}.pdf`;
+  $("btnPdf").disabled = true; st.textContent = "Gerando PDF…";
+  try {
+    const pdf = await gerarPdf();
+    if (window.claude && window.claude.use) {
+      const dl = await window.claude.use("downloads");
+      if (!dl) { st.textContent = "Download indisponível nesta visualização"; return; }
+      try { await dl.save({filename: nome, data: pdf.output("blob")}); st.textContent = "PDF salvo"; }
+      catch (e) { st.textContent = e && e.code === "declined" ? "Download cancelado" : e && e.code === "rate_limited" ? "Aguarde e tente de novo" : "Não foi possível salvar o PDF"; }
+    } else {
+      pdf.save(nome); st.textContent = "PDF salvo";
+    }
+  } catch (e) {
+    st.textContent = "Erro ao gerar o PDF"; console.error(e);
+  } finally { $("btnPdf").disabled = false; }
+};
 render();
 </script>
-</body>
-</html>
+

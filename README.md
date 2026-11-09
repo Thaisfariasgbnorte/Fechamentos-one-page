@@ -55,6 +55,9 @@ python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx Indicador_Meta
   nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI.
 - **% atingimento meta**: retorno ÷ meta da loja (aba Metas: out, nov, dez; novembro parcial pela aba Painel).
 - **% aprovação**: nenhuma planilha tem fichas enviadas/aprovadas, então a coluna fica "sem dado".
+- **Var. MA**: faturamento contra o mês anterior, com seta (▲ subiu, ▼ caiu).
+- **Gerar PDF**: botão no topo; gera 2 páginas A4 paisagem (comparativo e meta do grupo) do mês escolhido.
+- Publicado em https://claude.ai/artifact/VdxkL4QVbPLk9HwsPmrkZY (o arquivo gerado já é a página publicada).
 - Embaixo, a meta F&I do grupo (META F&I 2026: meta e realizado) e o real de retorno
   (linha RETORNO do quadro "4) POR TIPO" da aba Resumo do controle de notas fiscais).
 
