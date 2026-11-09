@@ -1,7 +1,8 @@
 """Gera o Comparativo F&I entre lojas (comparativo_financiamento.html) a partir das planilhas de F&I.
 
 Uso:
-    python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI.xlsx Indicador_Metas.xlsx META_FI_2026.xlsx [saida.html]
+    python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI.xlsx Indicador_Metas.xlsx META_FI_2026.xlsx \
+        CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx [saida.html]
 
 Lê só os valores já calculados (salve as planilhas no Excel antes de rodar).
 Nenhum número é inventado: o que não existe nas planilhas aparece como "—" na página.
@@ -148,9 +149,22 @@ def ler_meta_grupo(xlsx):
             continue
         val = lambda c: ws.cell(r, c).value if isinstance(ws.cell(r, c).value, (int, float)) else None
         real = val(4) or None  # célula vazia/zero = mês ainda não fechado
-        out.append({"mes": MESES[MESES_EXTENSO.index(mes)], "meta": val(3), "orcado1": val(11),
-                    "orcado2": val(22), "real": real})
+        out.append({"mes": MESES[MESES_EXTENSO.index(mes)], "meta": val(3), "real": real})
     return out
+
+
+def ler_retorno_nf(xlsx):
+    """Linha RETORNO do quadro "4) POR TIPO" da aba Resumo do controle de notas fiscais (meses 1..12)."""
+    ws = openpyxl.load_workbook(xlsx, data_only=True)["Resumo"]
+    quadro = None
+    for r in range(1, ws.max_row + 1):
+        a = str(ws.cell(r, 1).value or "").strip()
+        if a[:2].rstrip(")").isdigit() and ")" in a[:3]:
+            quadro = a
+        if quadro and quadro.startswith("4)") and a.upper() == "RETORNO":
+            return {MESES[c - 2]: ws.cell(r, c).value for c in range(2, 14)
+                    if isinstance(ws.cell(r, c).value, (int, float)) and ws.cell(r, c).value}
+    sys.exit("Não achei a linha RETORNO do quadro 4) POR TIPO na aba Resumo do controle de notas fiscais.")
 
 
 def ler_relatorio(xlsx):
@@ -167,7 +181,7 @@ def ler_relatorio(xlsx):
     return (mes if mes in MESES else None), out
 
 
-def main(diario, metas_xlsx, meta_fi, saida):
+def main(diario, metas_xlsx, meta_fi, notas, saida):
     por_mes, ano = ler_vendas(diario)
     mes_rel, rel = ler_relatorio(diario)
     if mes_rel:
@@ -189,6 +203,7 @@ def main(diario, metas_xlsx, meta_fi, saida):
         "metas": metas,
         "parcial": parcial,
         "metaGrupo": ler_meta_grupo(meta_fi),
+        "retornoNF": ler_retorno_nf(notas),
     }
     template = (Path(__file__).parent / "template_comparativo_fi.html").read_text(encoding="utf-8")
     html = template.replace("/*__DADOS__*/null", json.dumps(dados, ensure_ascii=False))
@@ -198,6 +213,6 @@ def main(diario, metas_xlsx, meta_fi, saida):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         sys.exit(__doc__)
-    main(*sys.argv[1:4], sys.argv[4] if len(sys.argv) > 4 else "comparativo_financiamento.html")
+    main(*sys.argv[1:5], sys.argv[5] if len(sys.argv) > 5 else "comparativo_financiamento.html")

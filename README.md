@@ -43,7 +43,7 @@ principal banco, % atingimento da meta e retorno médio, só com números das pl
 
 ```bash
 python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx Indicador_Metas_Novembro_2026.xlsx \
-    META_FI_2026.xlsx comparativo_financiamento.html
+    META_FI_2026.xlsx CONTROLE_SOLICITACOES_NOTAS_FISCAIS.xlsx comparativo_financiamento.html
 ```
 
 - **Faturamento**: "Volume Financ. Interno (R$)" da aba RELATÓRIO do Indicador Diário.
@@ -52,7 +52,8 @@ python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx Indicador_Meta
 - **Principal banco / retorno médio**: bases LINX e NBS do Indicador Diário (loja = "estoque tipo").
 - **% atingimento meta**: retorno ÷ meta da loja (aba Metas: out, nov, dez; novembro parcial pela aba Painel).
 - **% aprovação**: nenhuma planilha tem fichas enviadas/aprovadas, então a coluna fica "sem dado".
-- Embaixo, a meta F&I do grupo (META F&I 2026) como está na planilha.
+- Embaixo, a meta F&I do grupo (META F&I 2026: meta e realizado) e o real de retorno
+  (linha RETORNO do quadro "4) POR TIPO" da aba Resumo do controle de notas fiscais).
 
 ## Arquivos
 

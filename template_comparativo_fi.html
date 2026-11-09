@@ -133,10 +133,10 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
 
   <div class="grupo">
     <h2>Meta F&amp;I do grupo</h2>
-    <p>Da planilha META F&amp;I 2026 (aba META), como está lá. O realizado dessa planilha é outra apuração e não é a soma do retorno das lojas acima.</p>
+    <p>Meta e realizado da planilha META F&amp;I 2026 (aba META). Real de retorno: linha RETORNO do quadro “4) Por tipo” da aba Resumo do Controle de Solicitações de Notas Fiscais.</p>
     <div class="scroll" style="border:0">
       <table>
-        <thead><tr><th>Mês</th><th>Meta</th><th>1º orçado</th><th>2º orçado</th><th>Realizado</th><th class="center">% da meta</th></tr></thead>
+        <thead><tr><th>Mês</th><th>Meta</th><th>Realizado</th><th class="center">% da meta</th><th>Real de retorno</th><th class="center">Retorno ÷ meta</th></tr></thead>
         <tbody id="grupo"></tbody>
       </table>
     </div>
@@ -283,9 +283,10 @@ function render(){
 }
 
 $("grupo").innerHTML = (D.metaGrupo||[]).map(g => {
-  const p = div(g.real, g.meta), s = faixa(p);
   const v = x => x==null ? DASH : brl.format(x);
-  return `<tr><td class="loja">${NOMES_MES[g.mes]}</td><td>${v(g.meta)}</td><td>${v(g.orcado1)}</td><td>${v(g.orcado2)}</td><td><b>${v(g.real)}</b></td><td class="center">${p==null ? DASH : `<span class="st ${s}">${ICON[s]} ${pct(p)}</span>`}</td></tr>`;
+  const chip = p => { const s = faixa(p); return p==null ? DASH : `<span class="st ${s}">${ICON[s]} ${pct(p)}</span>`; };
+  const ret = (D.retornoNF||{})[g.mes] ?? null;
+  return `<tr><td class="loja">${NOMES_MES[g.mes]}</td><td>${v(g.meta)}</td><td>${v(g.real)}</td><td class="center">${chip(div(g.real, g.meta))}</td><td><b>${v(ret)}</b></td><td class="center">${chip(div(ret, g.meta))}</td></tr>`;
 }).join("");
 
 ["fMes","fLoja","fMeta"].forEach(id => $(id).onchange = render);
