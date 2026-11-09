@@ -153,7 +153,8 @@ h2{margin:0;color:var(--ink);font-size:15px;font-weight:700}
         <li>A aba RELATÓRIO mostra um mês por vez (hoje, outubro). Nos outros meses a página usa a mesma conta da aba aplicada às bases LINX REL VENDAS e NBS REL VENDAS (loja = coluna “estoque tipo”); no mês da aba, os números são idênticos.</li>
         <li><b>Principal banco</b>: banco que mais aparece no mês na coluna D (Banco) da aba LINX REL VENDAS e na coluna E (BANCO) da aba NBS REL VENDAS do Indicador Diário, com a loja das colunas K e M (“estoque tipo”). Contam todas as vendas com banco (interno, externo e consórcio); “À VISTA”, vazio e “EXTERNO” não contam.</li>
         <li><b>% atingimento meta</b>: retorno F&amp;I da loja ÷ meta de retorno da loja (aba Metas do Indicador de Metas, que só tem out, nov e dez). Em novembro o realizado é o da aba Painel, parcial até a data de corte, e a cor segue a projeção de fim de mês (como o Status do Painel). Nomes da aba Metas: MIT = Mitsubishi, TOCAUTO = VW Tocauto Auto, MAN = VW Caminhões.</li>
-        <li><b>Retorno médio</b>: retorno F&amp;I ÷ financiamentos internos (o “unit” do resumo do Indicador Diário). Retorno = LINX RES VEIC VEND FI + NBS REL VENDAS.</li>
+        <li><b>Retorno médio</b>: coluna G “Retorno F&amp;I Gerado (R$)” ÷ coluna C “Vendas Totais (Qtd)” da aba RELATÓRIO do Indicador Diário. Nos outros meses, a mesma conta com o retorno da aba LINX RES VEIC VEND FI, que é o que a coluna G soma.</li>
+        <li>O retorno do <b>% atingimento meta</b> soma LINX RES VEIC VEND FI e NBS REL VENDAS.</li>
         <li>Na linha <b>Consolidado</b> as taxas são recalculadas sobre os totais; o atingimento usa só as lojas que têm meta.</li>
         <li>Para atualizar: <code>python3 gerar_comparativo_fi.py</code> com as quatro planilhas (veja o README).</li>
       </ul>
@@ -193,7 +194,8 @@ function linha(loja, mes){
     banco: top ? top[0] : null, bancoQtd: top ? top[1] : 0, comBanco: bancos.reduce((t,[,n]) => t+n, 0),
     retorno, meta: meta ?? null, atingimento: div(retorno, meta),
     projecao: parcial ? parcial.pctProjecao : null,
-    retornoMedio: v ? div(v.retorno, v.financiadas) : null,
+    retornoRel: v ? v.retornoRel : null,
+    retornoMedio: v ? div(v.retornoRel, v.vendas) : null,
     temDado: !!(v || parcial),
   };
 }
@@ -209,7 +211,7 @@ const COLS = [
     const s = faixa(r.projecao ?? r.atingimento); // mês parcial: cor pela projeção, como o Status do Painel
     return `<span class="st ${s}">${ICON[s]} ${pct(r.atingimento)}</span><small>${brl0.format(r.retorno||0)} de ${brl0.format(r.meta)}` + (r.projecao!=null ? ` · proj. ${pct(r.projecao)}` : "") + `</small>`;
   }},
-  {k:"retornoMedio", t:"Retorno médio", f:r => r.retornoMedio==null ? DASH : brl.format(r.retornoMedio)},
+  {k:"retornoMedio", t:"Retorno médio", tip:"Retorno F&I Gerado (R$) ÷ Vendas Totais (Qtd) — aba RELATÓRIO", f:r => r.retornoMedio==null ? DASH : `${brl.format(r.retornoMedio)}<small>${brl0.format(r.retornoRel)} ÷ ${r.vendas} vendas</small>`},
 ];
 
 let sortKey = "faturamento", sortDir = -1;
@@ -262,7 +264,6 @@ function render(){
     rows.forEach(r => { const v=(D.porMes[mes]||{})[r.loja]; if (v) Object.entries(v.bancos).forEach(([b,n]) => bancos[b]=(bancos[b]||0)+n); });
     const top = Object.entries(bancos).sort((a,b) => b[1]-a[1])[0];
     const comMeta = rows.filter(r => r.meta!=null);
-    const retornoBase = rows.reduce((t,r) => { const v=(D.porMes[mes]||{})[r.loja]; return t + (v ? v.retorno : 0); }, 0);
     const tot = {
       faturamento: rows.some(r => r.faturamento!=null) ? soma("faturamento") : null,
       vendas: temVenda ? soma("vendas") : null, financiadas: temVenda ? soma("financiadas") : null,
@@ -271,7 +272,8 @@ function render(){
     };
     tot.penetration = temVenda ? div(tot.financiadas, tot.vendas) : null;
     tot.atingimento = div(tot.retorno, tot.meta);
-    tot.retornoMedio = temVenda ? div(retornoBase, tot.financiadas) : null;
+    tot.retornoRel = soma("retornoRel");
+    tot.retornoMedio = temVenda ? div(tot.retornoRel, tot.vendas) : null;
     $("foot").innerHTML = "<tr>" + COLS.map(c => c.k==="nome" ? "<td>Consolidado</td>" : `<td class="${c.center?"center":""}">${c.f(tot)}</td>`).join("") + "</tr>";
   } else $("foot").innerHTML = "";
 

@@ -16,7 +16,8 @@ De onde vem cada coluna (por loja = coluna "estoque tipo" das bases):
 - Principal banco .... banco que mais aparece no mês: LINX REL VENDAS col D (Banco) e NBS REL VENDAS
                        col E (BANCO), loja = col K / col M ("estoque tipo"); ignora À VISTA, vazio e EXTERNO
 - Retorno ............ LINX RES VEIC VEND FI "Retorno" + NBS REL VENDAS "RETORNO6"
-- Retorno médio ...... retorno ÷ financiamentos internos (o "unit" da aba de resumo)
+- Retorno médio ...... "Retorno F&I Gerado (R$)" (col G) ÷ "Vendas Totais (Qtd)" (col C) da aba RELATÓRIO;
+                       nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI (é o que a col G soma)
 - % atingimento meta . retorno ÷ meta da loja (aba Metas do Indicador de Metas; nov = aba Painel)
 - % aprovação ........ as planilhas não têm fichas enviadas/aprovadas -> fica "—"
 """
@@ -70,7 +71,8 @@ def conta_banco(a, banco):
 def ler_vendas(xlsx):
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     base = defaultdict(lambda: defaultdict(lambda: {"vendas": 0, "financiadas": 0,
-                                                    "volume": 0.0, "retorno": 0.0, "bancos": Counter()}))
+                                                    "volume": 0.0, "retorno": 0.0, "retornoRel": 0.0,
+                                                    "bancos": Counter()}))
     anos = Counter()
 
     def reg(r, loja_col="estoque tipo"):
@@ -103,6 +105,7 @@ def ler_vendas(xlsx):
         if r.get("MÊS") not in MESES or not r.get("estoque tipo"):
             continue
         reg(r)["retorno"] += num(r.get("Retorno"))
+        reg(r)["retornoRel"] += num(r.get("Retorno"))  # mesma base da col G da aba RELATÓRIO
 
     por_mes = {}
     for mes, lojas in base.items():
@@ -188,7 +191,8 @@ def ler_relatorio(xlsx):
         if not loja or str(loja).upper().startswith("TOTAL"):
             break
         out[loja] = {"vendas": ws.cell(r, 3).value, "financiadas": ws.cell(r, 4).value,
-                     "volume": ws.cell(r, 5).value, "positivacao": ws.cell(r, 6).value}
+                     "volume": ws.cell(r, 5).value, "positivacao": ws.cell(r, 6).value,
+                     "retornoRel": num(ws.cell(r, 7).value)}
     return (mes if mes in MESES else None), out
 
 
@@ -198,10 +202,11 @@ def main(diario, metas_xlsx, meta_fi, notas, saida):
     if mes_rel:
         for loja, v in rel.items():
             a = por_mes.setdefault(mes_rel, {}).setdefault(
-                loja, {"vendas": 0, "financiadas": 0, "volume": 0, "retorno": 0, "bancos": {}})
-            if (a["vendas"], a["financiadas"], round(a["volume"], 2)) != (v["vendas"], v["financiadas"], round(v["volume"] or 0, 2)):
+                loja, {"vendas": 0, "financiadas": 0, "volume": 0, "retorno": 0, "retornoRel": 0, "bancos": {}})
+            if ((a["vendas"], a["financiadas"], round(a["volume"], 2), round(a["retornoRel"], 2))
+                    != (v["vendas"], v["financiadas"], round(v["volume"] or 0, 2), round(v["retornoRel"], 2))):
                 print(f"AVISO: {loja} {mes_rel}: bases {a['vendas']}/{a['financiadas']}/{a['volume']} "
-                      f"x RELATÓRIO {v['vendas']}/{v['financiadas']}/{v['volume']} (vale o RELATÓRIO)")
+                      f"/{a['retornoRel']} x RELATÓRIO {v['vendas']}/{v['financiadas']}/{v['volume']}/{v['retornoRel']} (vale o RELATÓRIO)")
             a.update(v)  # no mês da aba RELATÓRIO valem os números da própria aba
     metas, parcial = ler_metas(metas_xlsx)
     lojas = sorted({l for m in por_mes.values() for l in m} | set(metas))

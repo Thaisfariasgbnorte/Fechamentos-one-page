@@ -51,7 +51,8 @@ python3 gerar_comparativo_fi.py INDICADOR_DIARIO_FI_GB_NORTE.xlsx Indicador_Meta
   A aba mostra um mês por vez; nos outros meses vale a mesma conta aplicada às bases LINX e NBS.
 - **Principal banco**: banco que mais aparece em LINX REL VENDAS col. D e NBS REL VENDAS col. E
   (loja = col. K / col. M "estoque tipo"); ignora À VISTA, vazio e EXTERNO.
-- **Retorno médio**: bases LINX e NBS do Indicador Diário (loja = "estoque tipo").
+- **Retorno médio**: "Retorno F&I Gerado (R$)" (col. G) ÷ "Vendas Totais (Qtd)" (col. C) da aba RELATÓRIO;
+  nos outros meses, a mesma conta com o retorno da LINX RES VEIC VEND FI.
 - **% atingimento meta**: retorno ÷ meta da loja (aba Metas: out, nov, dez; novembro parcial pela aba Painel).
 - **% aprovação**: nenhuma planilha tem fichas enviadas/aprovadas, então a coluna fica "sem dado".
 - Embaixo, a meta F&I do grupo (META F&I 2026: meta e realizado) e o real de retorno
