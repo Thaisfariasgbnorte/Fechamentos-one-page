@@ -56,7 +56,8 @@ button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var
 .panel h3{font-size:18px;font-weight:700}
 .panel .hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
 .panel .note{font-size:13px;color:var(--muted)}
-.span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}.span-6{grid-column:span 6}
+.span-12{grid-column:span 12}.lado{grid-column:span 6}
+@media (max-width:1000px){.lado{grid-column:span 12}}.span-7{grid-column:span 7}.span-5{grid-column:span 5}.span-6{grid-column:span 6}
 @media (max-width:1400px){.span-6{grid-column:span 12}}
 @media (max-width:960px){.span-7,.span-5{grid-column:span 12}}
 
@@ -120,10 +121,15 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="hd"><h3>Desempenho por loja</h3><span class="note" id="lojasNota"></span></div>
       <div class="tbl"><table id="tblLojas"></table></div>
     </section>
-    <section class="panel span-12">
+    <section class="panel lado">
       <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span></div></div>
       <div class="tabs" id="evoTabs" role="group" aria-label="Indicador do gráfico"></div>
       <div class="chart" id="evo"></div>
+    </section>
+    <section class="panel lado">
+      <div class="hd"><h3 id="tkTitulo">Passagens × ticket médio</h3><span class="note" id="tkNota"></span></div>
+      <div class="legend" id="tkLegenda"></div>
+      <div class="chart" id="tk"></div>
     </section>
   </div>
  </div>
@@ -338,6 +344,59 @@ function renderLojas(){
 }
 
 function niceMax(v){ if (v<=0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); for (const k of [1,1.2,1.5,2,2.5,3,4,5,6,8,10]) if (k*p >= v) return k*p; return 10*p; }
+// Passagens (barras) x ticket médio MO, oficina e peças (linhas), mês a mês, do export Linx/NBS
+const TK_LINHAS = [
+  ["oficina", "Ticket médio oficina", "#1d7a4a", r => r.total],
+  ["pecas", "Ticket médio peças", "#1f6fb2", r => r.pecas],
+  ["mo", "Ticket médio MO", "#b08400", r => r.mo],
+];
+function caminhoSuave(p){
+  // curva que passa pelos pontos (Catmull-Rom convertida em Bézier)
+  if (p.length < 2) return "";
+  let d = `M${p[0][0]},${p[0][1]}`;
+  for (let i = 0; i < p.length - 1; i++){
+    const p0 = p[i-1] || p[i], p1 = p[i], p2 = p[i+1], p3 = p[i+2] || p2;
+    d += ` C${p1[0]+(p2[0]-p0[0])/6},${p1[1]+(p2[1]-p0[1])/6} ${p2[0]-(p3[0]-p1[0])/6},${p2[1]-(p3[1]-p1[1])/6} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+function renderTicket(){
+  const el = document.getElementById("tk");
+  document.getElementById("tkTitulo").textContent = `Passagens × ticket médio · ${visao===CONS?"Consolidado":visao}`;
+  document.getElementById("tkNota").textContent = "export Linx/NBS";
+  document.getElementById("tkLegenda").innerHTML = `<span><i style="background:var(--meta)"></i>Passagens</span>` +
+    TK_LINHAS.map(([, rot, cor]) => `<span><i style="background:${cor}"></i>${rot}</span>`).join("");
+  const meses = MES.map((_, m) => m).filter(m => D.oficina.meses[m]);
+  const dados = meses.map(m => { const o = D.oficina.meses[m]; return [m, visao === CONS ? o.cons : o.porLoja[visao]]; })
+                     .filter(([, r]) => r && r.passagens);
+  if (!dados.length){ el.innerHTML = `<p class="muted">Sem export Linx/NBS com passagens para esta visão.</p>`; return; }
+  const W=720, H=300, L=12, R=44, T=26, B=26, bw = (W-L-R)/12;
+  const maxP = niceMax(Math.max(...dados.map(([, r]) => r.passagens)) * 1.15);
+  const tks = dados.flatMap(([, r]) => TK_LINHAS.map(([, , , f]) => f(r) / r.passagens)).filter(v => isFinite(v));
+  const maxT = niceMax(Math.max(...tks) * 1.12);
+  const yP = v => H - B - v / maxP * (H - T - B), yT = v => H - B - v / maxT * (H - T - B), cx = m => L + m*bw + bw/2;
+  let s = "";
+  for (let k = 0; k <= 4; k++){ const v = maxT*k/4, yy = yT(v);
+    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${W-R+6}" y="${yy+4}" font-size="11" fill="var(--muted)">${nf0.format(v)}</text>`; }
+  dados.forEach(([m, r]) => {
+    const on = sel.includes(m), y0 = yP(r.passagens);
+    s += `<rect x="${L+m*bw+bw*.12}" y="${y0}" width="${bw*.76}" height="${H-B-y0}" fill="var(--meta)" opacity="${on?1:.6}" rx="2"><title>Passagens ${MES[m]}: ${nf0.format(r.passagens)}</title></rect>`;
+    s += `<text x="${cx(m)}" y="${H-B-6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${nf0.format(r.passagens)}</text>`;
+  });
+  MES.forEach((nm, m) => s += `<text x="${cx(m)}" y="${H-8}" text-anchor="middle" font-size="12" fill="${sel.includes(m)?"var(--ink)":"var(--muted)"}" font-weight="${sel.includes(m)?700:400}">${nm}</text>`);
+  TK_LINHAS.forEach(([, rot, cor, f], li) => {
+    const pts = dados.map(([m, r]) => [m, f(r) / r.passagens]).filter(([, v]) => isFinite(v));
+    s += `<path d="${caminhoSuave(pts.map(([m, v]) => [cx(m), yT(v)]))}" fill="none" stroke="${cor}" stroke-width="2"/>`;
+    pts.forEach(([m, v]) => {
+      // rótulos: MO abaixo da linha, os outros acima
+      const y = yT(v), ty = li === 2 ? y + 16 : y - 8;
+      s += `<circle cx="${cx(m)}" cy="${y}" r="3.2" fill="${cor}"><title>${rot} ${MES[m]}: ${brl(v)}</title></circle>`;
+      s += `<text x="${cx(m)}" y="${ty}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${cor}" stroke="var(--surface)" stroke-width="3" paint-order="stroke">${nf0.format(v)}</text>`;
+    });
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Passagens e ticket médio por mês">${s}</svg>`;
+}
+
 function renderEvo(){
   const ind = IND[evoInd], {real, meta} = serie(ind, visao);
   document.getElementById("evoTitulo").textContent = `Evolução mensal · ${ind.rotulo} · ${visao===CONS?"Consolidado":visao}`;
@@ -345,7 +404,7 @@ function renderEvo(){
   const vals = [...real, ...meta].filter(v => ok(v));
   const el = document.getElementById("evo");
   if (!vals.length){ el.innerHTML = `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`; return; }
-  const W=1200,H=280,L=68,R=8,T=22,B=26, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
+  const W=720,H=300,L=68,R=8,T=22,B=26, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
   const y = v => T + (max - v)/(max - min)*(H-T-B), bw = (W-L-R)/12;
   let s = "";
   for (let k=0;k<=4;k++){ const v = min + (max-min)*k/4, yy = y(v);
@@ -506,7 +565,7 @@ function render(){
   elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", sel.includes(k)));
   elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
-  renderKpis(); renderLojas(); renderEvo(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
+  renderKpis(); renderLojas(); renderEvo(); renderTicket(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
   ["tblLojas", "tblOficina", "tblEstoque"].forEach(ordenavel);
   document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
     `. Vários meses: faturamento e passagens somados; margem ponderada pelo faturamento, ticket pelas passagens, demais por média simples. Comparação com o período anterior de mesmo tamanho. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
