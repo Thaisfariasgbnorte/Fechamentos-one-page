@@ -57,43 +57,15 @@ button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var
 .panel .hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
 .panel .note{font-size:13px;color:var(--muted)}
 .span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}.span-6{grid-column:span 6}
-@media (max-width:1400px){.span-6{grid-column:span 12}}
+@media (max-width:1240px){.span-6{grid-column:span 12}}
 @media (max-width:960px){.span-7,.span-5{grid-column:span 12}}
 
 .tbl{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th.ordena{cursor:pointer;user-select:none} th.ordena:hover,th[aria-sort="ascending"],th[aria-sort="descending"]{color:var(--ink)}
 .pdf th.ordena{color:var(--muted)}
-th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);vertical-align:bottom}
-td{padding:6px;border-bottom:1px solid var(--line)}
-td.n,td.rank-n{white-space:nowrap}
-/* tabela vira cartões quando a tela não comporta as colunas: sem rolagem para o lado.
-   .larga = tabelas com muitas colunas (desempenho, oficina), que viram cartões mais cedo */
-@media (max-width:1250px){
-  .tbl.larga thead tr{display:flex;flex-wrap:wrap;gap:6px}
-  .tbl.larga th{border:1px solid var(--line);border-radius:999px;padding:3px 10px;text-align:left}
-  .tbl.larga table,.tbl.larga thead,.tbl.larga tbody,.tbl.larga tfoot{display:block}
-  .tbl.larga tbody tr,.tbl.larga tfoot tr{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 18px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px}
-  .tbl.larga tfoot tr{border:2px solid var(--ink)}
-  .tbl.larga td{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border:0;padding:3px 0;text-align:right;white-space:normal}
-  .tbl.larga td::before{content:attr(data-label);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left}
-  .tbl.larga td:first-child{grid-column:1/-1;font-weight:700;font-size:15px;justify-content:flex-start}
-  .tbl.larga td:first-child::before{content:none}
-  .tbl.larga td[colspan]{grid-column:1/-1}
-}
-@media (max-width:720px){
-  .tbl thead tr{display:flex;flex-wrap:wrap;gap:6px}
-  .tbl th{border:1px solid var(--line);border-radius:999px;padding:3px 10px;text-align:left}
-  .tbl table,.tbl thead,.tbl tbody,.tbl tfoot{display:block}
-  .tbl tbody tr,.tbl tfoot tr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 18px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px}
-  .tbl tfoot tr{border:2px solid var(--ink)}
-  .tbl td{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border:0;padding:3px 0;text-align:right;white-space:normal}
-  .tbl td::before{content:attr(data-label);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left}
-  .tbl td:first-child{grid-column:1/-1;font-weight:700;font-size:15px;justify-content:flex-start}
-  .tbl td:first-child::before{content:none}
-  .tbl td[colspan]{grid-column:1/-1}
-  .tbl td.rank-n::after{content:"º"}
-}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
 td.n,th.n{text-align:right}
 tbody tr.sel td{background:var(--accent-soft)}
 tbody tr.click{cursor:pointer} tbody tr.click:hover td{background:var(--surface-2)}
@@ -148,7 +120,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
   <div class="grid">
     <section class="panel span-12">
       <div class="hd"><h3>Desempenho por loja</h3><span class="note" id="lojasNota"></span></div>
-      <div class="tbl larga"><table id="tblLojas"></table></div>
+      <div class="tbl"><table id="tblLojas"></table></div>
     </section>
     <section class="panel span-7">
       <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span></div></div>
@@ -169,7 +141,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
   <div class="grid">
     <section class="panel span-12">
       <div class="hd"><h3>Mão de obra × peças por loja</h3><span class="note" id="ofNota"></span></div>
-      <div class="tbl larga"><table id="tblOficina"></table></div>
+      <div class="tbl"><table id="tblOficina"></table></div>
       <div id="ofAlerta"></div>
     </section>
     <section class="panel span-6" id="painelEst">
@@ -359,7 +331,7 @@ function renderKpis(){
 
 function renderLojas(){
   const inds = D.indicadores;
-  const head = `<thead><tr><th>Loja</th>${inds.map(i=>temMeta(i)?`<th class="n">Meta ${esc(i.rotulo.toLowerCase())}</th><th class="n">${esc(i.rotulo)}</th><th class="n" data-rotulo="% meta ${esc(i.rotulo.toLowerCase())}">% meta</th>`:`<th class="n">${esc(i.rotulo)}</th>`).join("")}</tr></thead>`;
+  const head = `<thead><tr><th>Loja</th>${inds.map(i=>temMeta(i)?`<th class="n">Meta ${esc(i.rotulo.toLowerCase())}</th><th class="n">${esc(i.rotulo)}</th><th class="n">% meta</th>`:`<th class="n">${esc(i.rotulo)}</th>`).join("")}</tr></thead>`;
   const celulas = l => inds.map(i => { const x = agrega(i, l, sel); // meta antes do realizado
     if (!temMeta(i)) return `<td class="n"${dv(x.r)}>${fmt(i, x.r, true)}</td>`;
     return `<td class="n muted"${dv(x.mt)}>${fmt(i, x.mt, true)}</td><td class="n"${dv(x.r)}>${fmt(i, x.r, true)}</td><td class="n"${dv(x.p)}>${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>`; }).join("");
@@ -522,7 +494,7 @@ function renderQualidade(){
   const q = D.qualidade.itens.filter(i => visao===CONS || i.loja===visao);
   document.getElementById("qmNota").textContent = D.qualidade.periodo ? `Referência: ${D.qualidade.periodo}` : "";
   document.getElementById("tblQualidade").innerHTML = `<thead><tr><th>Marca</th><th>Loja</th><th>Programa</th><th class="n">Meta</th><th class="n">Resultado</th><th>Status / observação</th></tr></thead><tbody>` +
-    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.meta!=null?pct(i.meta):"—"}</td><td class="n">${i.resultado!=null?`<span class="pill ${faixa(i.resultado)}">${pct(i.resultado)}</span>`:"—"}</td><td>${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
+    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.meta!=null?pct(i.meta):"—"}</td><td class="n">${i.resultado!=null?`<span class="pill ${faixa(i.resultado)}">${pct(i.resultado)}</span>`:"—"}</td><td style="white-space:normal;min-width:220px">${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
       : `<tr><td colspan="6" class="muted">Sem programa da montadora lançado para esta loja.</td></tr>`) + `</tbody>`;
 }
 
@@ -567,16 +539,6 @@ function ordenavel(id){
   });
 }
 
-// cada célula recebe o nome da coluna, mostrado quando a tabela vira cartões
-function rotular(id){
-  const t = document.getElementById(id);
-  const nomes = t.tHead ? [...t.tHead.rows[0].cells].map(th => th.dataset.rotulo || th.textContent.replace(/ [▼▲]$/, "")) : [];
-  [...t.querySelectorAll("tbody tr, tfoot tr")].forEach(tr => {
-    let c = 0;
-    [...tr.cells].forEach(td => { td.dataset.label = nomes[c] || ""; c += td.colSpan || 1; });
-  });
-}
-
 function render(){
   document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
   document.getElementById("tituloMes").textContent = rotuloSel(true) + (visao!==CONS ? " · " + visao : "");
@@ -586,7 +548,6 @@ function render(){
   elVisao.value = visao;
   renderKpis(); renderLojas(); renderEvo(); renderConcl(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
   ["tblLojas", "tblOficina", "tblEstoque"].forEach(ordenavel);
-  ["tblLojas", "tblOficina", "tblEstoque", "tblRanking", "tblQualidade"].forEach(rotular);
   document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
     `. Vários meses: faturamento e passagens somados; margem ponderada pelo faturamento, ticket pelas passagens, demais por média simples. Comparação com o período anterior de mesmo tamanho. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
 }
