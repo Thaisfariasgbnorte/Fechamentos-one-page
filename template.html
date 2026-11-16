@@ -57,15 +57,18 @@ button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var
 .panel .hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
 .panel .note{font-size:13px;color:var(--muted)}
 .span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}.span-6{grid-column:span 6}
-@media (max-width:1240px){.span-6{grid-column:span 12}}
+@media (max-width:1400px){.span-6{grid-column:span 12}}
 @media (max-width:960px){.span-7,.span-5{grid-column:span 12}}
 
 .tbl{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:14px}
+/* tabelas encolhem letra e espaço com a largura da tela para caber sem rolagem lateral */
+table{border-collapse:collapse;width:100%;font-size:clamp(11px,1.05vw,14px)}
 th.ordena{cursor:pointer;user-select:none} th.ordena:hover,th[aria-sort="ascending"],th[aria-sort="descending"]{color:var(--ink)}
 .pdf th.ordena{color:var(--muted)}
-th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:clamp(9px,.86vw,12px);letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:clamp(3px,.45vw,6px);border-bottom:1px solid var(--line);vertical-align:bottom}
+td{padding:clamp(3px,.45vw,6px);border-bottom:1px solid var(--line)}
+td.n{white-space:nowrap}
+td .pill{font-size:.86em;padding:1px .5em}
 td.n,th.n{text-align:right}
 tbody tr.sel td{background:var(--accent-soft)}
 tbody tr.click{cursor:pointer} tbody tr.click:hover td{background:var(--surface-2)}
