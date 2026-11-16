@@ -82,11 +82,6 @@ tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
 .legend{display:flex;gap:14px;font-size:13px;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 
-ul.concl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:75ch}
-.acoes{display:flex;flex-direction:column;gap:8px}
-.acoes div{border-left:3px solid var(--line);padding-left:10px}
-.acoes b{font-size:13px}
-
 .bar2{display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--surface-2);min-width:70px}
 .bar2 span:first-child{background:var(--mark)} .bar2 span:last-child{background:var(--meta)}
 .alert{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 10px;font-size:13px;font-weight:600}
@@ -125,16 +120,10 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="hd"><h3>Desempenho por loja</h3><span class="note" id="lojasNota"></span></div>
       <div class="tbl"><table id="tblLojas"></table></div>
     </section>
-    <section class="panel span-7">
+    <section class="panel span-12">
       <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span></div></div>
       <div class="tabs" id="evoTabs" role="group" aria-label="Indicador do gráfico"></div>
       <div class="chart" id="evo"></div>
-    </section>
-    <section class="panel span-5">
-      <h3>Principais conclusões</h3>
-      <ul class="concl" id="concl"></ul>
-      <h3>Ações e comentários do mês</h3>
-      <div class="acoes" id="acoes"></div>
     </section>
   </div>
  </div>
@@ -356,7 +345,7 @@ function renderEvo(){
   const vals = [...real, ...meta].filter(v => ok(v));
   const el = document.getElementById("evo");
   if (!vals.length){ el.innerHTML = `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`; return; }
-  const W=720,H=250,L=68,R=8,T=22,B=26, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
+  const W=1200,H=280,L=68,R=8,T=22,B=26, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
   const y = v => T + (max - v)/(max - min)*(H-T-B), bw = (W-L-R)/12;
   let s = "";
   for (let k=0;k<=4;k++){ const v = min + (max-min)*k/4, yy = y(v);
@@ -373,38 +362,6 @@ function renderEvo(){
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meta e realizado por mês">${s}</svg>`;
 }
 
-function renderConcl(){
-  const c = [], nm = rotuloSel(false), varios = sel.length > 1, noPer = varios ? "no período" : "no mês";
-  const f = calc(IND.fat, visao);
-  const vs = x => x.varAnt!=null ? `${fmtVar(x, false)} vs ${x.nomeAnt}` : "";
-  if (f.r != null) c.push(`Faturamento de ${nm}: <b>${brl(f.r)}</b>${f.p!=null?` — ${pct(f.p)} da meta`:""}${f.varAnt!=null?`, ${vs(f)}`:""}.`);
-  else c.push(`Faturamento de ${nm} ainda não lançado na aba FATURAMENTO.`);
-  if (varios && f.n > 1) c.push(`Média mensal de faturamento: <b>${brl(f.r / f.n)}</b> em ${f.n} meses lançados.`);
-  if (f.ra != null && !anoInteiro()) c.push(`Acumulado no ano até ${MES[ultimo()]}: <b>${brl(f.ra)}</b>${f.pa!=null?` — ${pct(f.pa)} da meta acumulada`:""}.`);
-  const p = calc(IND.pass, visao);
-  if (p.r != null) c.push(`Passagens: <b>${nf0.format(p.r)}</b> ${noPer}${p.varAnt!=null?` (${vs(p)})`:""}${p.p!=null?`, ${pct(p.p)} da meta`:""}.`);
-  const mg = calc(IND.margem, visao), tk = calc(IND.ticket, visao);
-  if (mg.r != null || tk.r != null) c.push(`Margem bruta ${fmt(IND.margem, mg.r)} · ticket médio ${fmt(IND.ticket, tk.r)}${varios?" (médias ponderadas do período)":""}.`);
-  else c.push(`Margem e ticket médio sem lançamento em ${nm} (vêm do export Linx/NBS do mês).`);
-  const qual = ["nps","ffv","did"].filter(k => IND[k]);
-  if (qual.length && !qual.some(k => calc(IND[k], visao).r != null)) c.push(`${qual.map(k => IND[k].rotulo).join(" e ")} sem lançamento ${noPer}; veja os programas da montadora na página 2.`);
-  const comMeta = D.indicadores.map(i => calc(i, visao)).filter(x => x.p != null);
-  c.push(`Metas atingidas ${noPer}: <b>${comMeta.filter(x => x.p >= D.faixaVerde).length} de ${comMeta.length}</b> indicadores com meta.`);
-  if (visao === CONS){
-    const rk = LOJAS.map(l => [l, agrega(IND.fat, l, sel).p]).filter(x => x[1] != null).sort((a,b)=>b[1]-a[1]);
-    if (rk.length > 1) c.push(`Melhor atingimento em faturamento: <b>${esc(rk[0][0])}</b> (${pct(rk[0][1])}); menor: <b>${esc(rk.at(-1)[0])}</b> (${pct(rk.at(-1)[1])}).`);
-  }
-  const ini2 = D.inicioPeriodo2, fim = ultimo();
-  if (ini2 != null && ini2 > 0 && fim >= ini2){
-    const r = serie(IND.fat, visao).real, p1 = r.slice(0, ini2).filter(ok), p2 = r.slice(ini2, fim+1).filter(ok);
-    if (p1.length && p2.length){ const a = soma(p1)/p1.length, b = soma(p2)/p2.length; c.push(`Faturamento médio: ${esc(D.periodo1)} ${brlK(a)} × ${esc(D.periodo2)} ${brlK(b)} (${b/a-1>=0?"+":""}${pct(b/a-1)}).`); }
-  }
-  document.getElementById("concl").innerHTML = c.map(x => `<li>${x}</li>`).join("");
-
-  const ac = [];
-  D.indicadores.forEach(i => Object.entries(i.comentarios).forEach(([l, t]) => { if (visao===CONS || l===visao) ac.push(`<div><b>${esc(i.rotulo)} · ${esc(l)}</b><br>${esc(t)}</div>`); }));
-  document.getElementById("acoes").innerHTML = ac.length ? ac.join("") : `<p class="muted">Nenhum comentário lançado. Escreva justificativas e planos de ação no quadro "Comentários e ações do mês" de cada aba da planilha.</p>`;
-}
 
 // meses do período com o dado; se nenhum tiver, o último mês com dado antes do fim do período
 function mesesCom(tem){
@@ -549,7 +506,7 @@ function render(){
   elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", sel.includes(k)));
   elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
-  renderKpis(); renderLojas(); renderEvo(); renderConcl(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
+  renderKpis(); renderLojas(); renderEvo(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
   ["tblLojas", "tblOficina", "tblEstoque"].forEach(ordenavel);
   document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
     `. Vários meses: faturamento e passagens somados; margem ponderada pelo faturamento, ticket pelas passagens, demais por média simples. Comparação com o período anterior de mesmo tamanho. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
