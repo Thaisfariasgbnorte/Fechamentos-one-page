@@ -346,10 +346,11 @@ function renderLojas(){
 function niceMax(v){ if (v<=0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); for (const k of [1,1.2,1.5,2,2.5,3,4,5,6,8,10]) if (k*p >= v) return k*p; return 10*p; }
 // Passagens (barras) x ticket médio MO, oficina e peças (linhas), mês a mês, do export Linx/NBS
 const TK_LINHAS = [
-  ["oficina", "Ticket médio oficina", "#1d7a4a", r => r.total],
+  ["oficina", "Ticket médio oficina", "#14804a", r => r.total],
   ["pecas", "Ticket médio peças", "#1f6fb2", r => r.pecas],
-  ["mo", "Ticket médio MO", "#b08400", r => r.mo],
+  ["mo", "Ticket médio MO", "#c58f00", r => r.mo],
 ];
+const TK_BARRA = "#d7e3ef";
 function caminhoSuave(p){
   // curva que passa pelos pontos (Catmull-Rom convertida em Bézier)
   if (p.length < 2) return "";
@@ -360,38 +361,42 @@ function caminhoSuave(p){
   }
   return d;
 }
+// etiqueta de valor: caixa colorida com o número em branco
+function etiqueta(x, y, txt, cor){
+  const w = txt.length * 8.6 + 10, h = 20;
+  return `<rect x="${x - w/2}" y="${y - h/2}" width="${w}" height="${h}" rx="4" fill="${cor}"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">${txt}</text>`;
+}
 function renderTicket(){
   const el = document.getElementById("tk");
   document.getElementById("tkTitulo").textContent = `Passagens × ticket médio · ${visao===CONS?"Consolidado":visao}`;
   document.getElementById("tkNota").textContent = "export Linx/NBS";
-  document.getElementById("tkLegenda").innerHTML = `<span><i style="background:var(--meta)"></i>Passagens</span>` +
+  document.getElementById("tkLegenda").innerHTML = `<span><i style="background:${TK_BARRA}"></i>Passagens</span>` +
     TK_LINHAS.map(([, rot, cor]) => `<span><i style="background:${cor}"></i>${rot}</span>`).join("");
   const meses = MES.map((_, m) => m).filter(m => D.oficina.meses[m]);
   const dados = meses.map(m => { const o = D.oficina.meses[m]; return [m, visao === CONS ? o.cons : o.porLoja[visao]]; })
                      .filter(([, r]) => r && r.passagens);
   if (!dados.length){ el.innerHTML = `<p class="muted">Sem export Linx/NBS com passagens para esta visão.</p>`; return; }
-  const W=720, H=300, L=12, R=44, T=26, B=26, bw = (W-L-R)/12;
-  const maxP = niceMax(Math.max(...dados.map(([, r]) => r.passagens)) * 1.15);
+  const W=720, H=380, L=8, R=8, T=24, B=30, bw = (W-L-R)/12;
+  const maxP = niceMax(Math.max(...dados.map(([, r]) => r.passagens)) * 1.1);
   const tks = dados.flatMap(([, r]) => TK_LINHAS.map(([, , , f]) => f(r) / r.passagens)).filter(v => isFinite(v));
-  const maxT = niceMax(Math.max(...tks) * 1.12);
-  const yP = v => H - B - v / maxP * (H - T - B), yT = v => H - B - v / maxT * (H - T - B), cx = m => L + m*bw + bw/2;
+  const maxT = Math.max(...tks) * 1.1;
+  // linhas ocupam a faixa de cima; as barras de passagens ficam atrás
+  const yP = v => H - B - v / maxP * (H - T - B), yT = v => H - B - 34 - v / maxT * (H - T - B - 34), cx = m => L + m*bw + bw/2;
   let s = "";
-  for (let k = 0; k <= 4; k++){ const v = maxT*k/4, yy = yT(v);
-    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${W-R+6}" y="${yy+4}" font-size="11" fill="var(--muted)">${nf0.format(v)}</text>`; }
   dados.forEach(([m, r]) => {
     const on = sel.includes(m), y0 = yP(r.passagens);
-    s += `<rect x="${L+m*bw+bw*.12}" y="${y0}" width="${bw*.76}" height="${H-B-y0}" fill="var(--meta)" opacity="${on?1:.6}" rx="2"><title>Passagens ${MES[m]}: ${nf0.format(r.passagens)}</title></rect>`;
-    s += `<text x="${cx(m)}" y="${H-B-6}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${nf0.format(r.passagens)}</text>`;
+    s += `<rect x="${L+m*bw+bw*.08}" y="${y0}" width="${bw*.84}" height="${H-B-y0}" fill="${TK_BARRA}" opacity="${on?1:.75}" stroke="${on?"var(--ink)":"none"}" stroke-width="1.5" rx="3"><title>Passagens ${MES[m]}: ${nf0.format(r.passagens)}</title></rect>`;
+    s += etiqueta(cx(m), H - B - 15, nf0.format(r.passagens), "#111111");
   });
-  MES.forEach((nm, m) => s += `<text x="${cx(m)}" y="${H-8}" text-anchor="middle" font-size="12" fill="${sel.includes(m)?"var(--ink)":"var(--muted)"}" font-weight="${sel.includes(m)?700:400}">${nm}</text>`);
+  MES.forEach((nm, m) => s += `<text x="${cx(m)}" y="${H-8}" text-anchor="middle" font-size="14" fill="${sel.includes(m)?"var(--ink)":"var(--muted)"}" font-weight="${sel.includes(m)?700:500}">${nm}</text>`);
   TK_LINHAS.forEach(([, rot, cor, f], li) => {
     const pts = dados.map(([m, r]) => [m, f(r) / r.passagens]).filter(([, v]) => isFinite(v));
-    s += `<path d="${caminhoSuave(pts.map(([m, v]) => [cx(m), yT(v)]))}" fill="none" stroke="${cor}" stroke-width="2"/>`;
+    s += `<path d="${caminhoSuave(pts.map(([m, v]) => [cx(m), yT(v)]))}" fill="none" stroke="${cor}" stroke-width="2.5"/>`;
     pts.forEach(([m, v]) => {
-      // rótulos: MO abaixo da linha, os outros acima
-      const y = yT(v), ty = li === 2 ? y + 16 : y - 8;
-      s += `<circle cx="${cx(m)}" cy="${y}" r="3.2" fill="${cor}"><title>${rot} ${MES[m]}: ${brl(v)}</title></circle>`;
-      s += `<text x="${cx(m)}" y="${ty}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${cor}" stroke="var(--surface)" stroke-width="3" paint-order="stroke">${nf0.format(v)}</text>`;
+      // etiquetas: oficina e peças acima do ponto, MO abaixo
+      const y = yT(v), ty = li === 2 ? y + 17 : y - 17;
+      s += `<circle cx="${cx(m)}" cy="${y}" r="4" fill="${cor}" stroke="#ffffff" stroke-width="1.5"><title>${rot} ${MES[m]}: ${brl(v)}</title></circle>`;
+      s += etiqueta(cx(m), ty, nf0.format(v), cor);
     });
   });
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Passagens e ticket médio por mês">${s}</svg>`;
@@ -404,19 +409,19 @@ function renderEvo(){
   const vals = [...real, ...meta].filter(v => ok(v));
   const el = document.getElementById("evo");
   if (!vals.length){ el.innerHTML = `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`; return; }
-  const W=720,H=300,L=68,R=8,T=22,B=26, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
+  const W=720,H=380,L=78,R=8,T=22,B=30, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
   const y = v => T + (max - v)/(max - min)*(H-T-B), bw = (W-L-R)/12;
   let s = "";
   for (let k=0;k<=4;k++){ const v = min + (max-min)*k/4, yy = y(v);
-    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="12.5" fill="var(--muted)">${fmt(ind, v, true)}</text>`; }
+    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="14" fill="var(--muted)">${fmt(ind, v, true)}</text>`; }
   MES.forEach((nm, k) => {
     const x0 = L + k*bw, cx = x0 + bw/2, on = sel.includes(k);
     if (on) s += `<rect x="${x0+1}" y="${T-18}" width="${bw-2}" height="${H-T-B+18}" fill="var(--accent-soft)" rx="3"/>`;
     if (meta[k]) s += `<rect x="${x0+bw*.14}" y="${y(meta[k])}" width="${bw*.72}" height="${Math.max(0,y(min)-y(meta[k]))}" fill="var(--meta)" rx="2"><title>Meta ${nm}: ${fmt(ind, meta[k])}</title></rect>`;
     if (ok(real[k])) { const top = y(Math.max(real[k],0)), h = Math.abs(y(real[k]) - y(0));
       s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--mark)" opacity="${on?1:.55}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
-    if (on && sel.length <= 4 && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="${sel.length > 2 ? 10.5 : 12.5}" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
-    s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="12.5" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${nm}</text>`;
+    if (on && sel.length <= 4 && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="${sel.length > 2 ? 12 : 14}" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
+    s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="14" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${nm}</text>`;
   });
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meta e realizado por mês">${s}</svg>`;
 }
