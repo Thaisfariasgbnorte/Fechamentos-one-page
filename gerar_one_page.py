@@ -48,25 +48,35 @@ def bloco(ws, linha_ini, n_lojas):
 def main(xlsx, saida):
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     cfg = wb["CONFIGURAÇÃO"]
-    lojas = [cfg.cell(r, 3).value for r in range(12, 21) if cfg.cell(r, 3).value]
-    n = len(lojas)
-
-    fontes, faixas = {}, {}
+    # a CONFIGURAÇÃO é lida pelos rótulos da coluna B, então lojas novas não quebram o gerador
+    lojas, fontes, faixas, cfg_val = [], {}, {}, {}
+    em_fontes = False
     for r in range(1, cfg.max_row + 1):
-        rot = str(cfg.cell(r, 2).value or "")
-        if 30 <= r <= 40 and cfg.cell(r, 3).value and not rot.startswith(("Verde", "Amarelo")):
-            fontes[rot] = cfg.cell(r, 3).value
+        rot = str(cfg.cell(r, 2).value or "").strip()
+        val = cfg.cell(r, 3).value
+        if rot.startswith("Loja ") and val:
+            lojas.append(val)
+        elif rot == "Indicador":
+            em_fontes = True
+            continue
+        elif rot.startswith("FAIXAS"):
+            em_fontes = False
+        if em_fontes and rot and val:
+            fontes[rot] = val
         if rot.startswith("Verde"):
-            faixas["verde"] = cfg.cell(r, 3).value
+            faixas["verde"] = val
         if rot.startswith("Amarelo"):
-            faixas["amarela"] = cfg.cell(r, 3).value
+            faixas["amarela"] = val
+        cfg_val[rot] = val
+    n = len(lojas)
 
     dados = {
         "empresa": cfg["C6"].value,
         "ano": cfg["C7"].value,
-        "periodo1": cfg["C23"].value,
-        "periodo2": cfg["C24"].value,
-        "inicioPeriodo2": MESES.index(cfg["C25"].value) if cfg["C25"].value in MESES else None,
+        "periodo1": cfg_val.get("Nome do período 1"),
+        "periodo2": cfg_val.get("Nome do período 2"),
+        "inicioPeriodo2": MESES.index(cfg_val.get("Mês em que começa o período 2"))
+                          if cfg_val.get("Mês em que começa o período 2") in MESES else None,
         "faixaVerde": faixas.get("verde") or 1,
         "faixaAmarela": faixas.get("amarela") or 0.9,
         "lojas": lojas,
@@ -78,10 +88,13 @@ def main(xlsx, saida):
         if aba not in wb.sheetnames:
             continue
         ws = wb[aba]
+        # seções localizadas pelo rótulo da coluna B (META, COMENTÁRIOS); dados 2 linhas abaixo
+        secao = {str(ws.cell(r, 2).value or "").split(" ")[0]: r for r in range(1, ws.max_row + 1)}
         real, real_cons = bloco(ws, 8, n)
-        meta, meta_cons = bloco(ws, 21, n)
+        meta, meta_cons = bloco(ws, secao["META"] + 2, n)
+        ini_com = secao.get("COMENTÁRIOS", ws.max_row) + 2
         comentarios = {ws.cell(r, 2).value: ws.cell(r, 3).value
-                       for r in range(47, 47 + n + 1) if ws.cell(r, 3).value}
+                       for r in range(ini_com, ini_com + n + 1) if ws.cell(r, 3).value}
         dados["indicadores"].append({
             "chave": chave, "rotulo": rotulo, "unidade": unidade, "consolidacao": consol,
             "fonte": fontes.get(rotulo, ""),
