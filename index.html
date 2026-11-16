@@ -62,6 +62,8 @@ button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var
 
 .tbl{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
+th.ordena{cursor:pointer;user-select:none} th.ordena:hover,th[aria-sort="ascending"],th[aria-sort="descending"]{color:var(--ink)}
+.pdf th.ordena{color:var(--muted)}
 th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
 td.n,th.n{text-align:right}
@@ -331,12 +333,12 @@ function renderLojas(){
   const inds = D.indicadores;
   const head = `<thead><tr><th>Loja</th>${inds.map(i=>temMeta(i)?`<th class="n">Meta ${esc(i.rotulo.toLowerCase())}</th><th class="n">${esc(i.rotulo)}</th><th class="n">% meta</th>`:`<th class="n">${esc(i.rotulo)}</th>`).join("")}</tr></thead>`;
   const celulas = l => inds.map(i => { const x = agrega(i, l, sel); // meta antes do realizado
-    if (!temMeta(i)) return `<td class="n">${fmt(i, x.r, true)}</td>`;
-    return `<td class="n muted">${fmt(i, x.mt, true)}</td><td class="n">${fmt(i, x.r, true)}</td><td class="n">${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>`; }).join("");
+    if (!temMeta(i)) return `<td class="n"${dv(x.r)}>${fmt(i, x.r, true)}</td>`;
+    return `<td class="n muted"${dv(x.mt)}>${fmt(i, x.mt, true)}</td><td class="n"${dv(x.r)}>${fmt(i, x.r, true)}</td><td class="n"${dv(x.p)}>${x.p!=null?pill(x.p):'<span class="muted">—</span>'}</td>`; }).join("");
   const corpo = lojasVis().map(l => `<tr class="click" tabindex="0" data-loja="${esc(l)}"><td>${esc(l)}</td>${celulas(l)}</tr>`).join("");
   const t = document.getElementById("tblLojas");
   t.innerHTML = head + `<tbody>${corpo}</tbody>` + (visao===CONS ? `<tfoot><tr><td>Consolidado</td>${celulas(CONS)}</tr></tfoot>` : "");
-  document.getElementById("lojasNota").textContent = visao===CONS ? "Clique numa loja para ver só ela · cor = faixa de atingimento da meta" : "Clique na loja para voltar ao consolidado · cor = faixa de atingimento da meta";
+  document.getElementById("lojasNota").textContent = visao===CONS ? "Clique numa loja para ver só ela · clique no título da coluna para ordenar" : "Clique na loja para voltar ao consolidado · cor = faixa de atingimento da meta";
   t.querySelectorAll("tr[data-loja]").forEach(tr => {
     const go = () => setVisao(tr.dataset.loja === visao ? CONS : tr.dataset.loja);
     tr.onclick = go; tr.onkeydown = e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
@@ -432,7 +434,7 @@ function renderOficina(){
   const cons = somaOficina(mm.map(o => o.cons));
   document.getElementById("ofNota").textContent = `Export Linx/NBS · ${notaPer(per)}`;
   const cols = [["passagens","Passagens",v=>nf0.format(v)],["mo","Mão de obra",brlK],["pctMo","% obj. MO",null],["pecas","Peças",brlK],["pctPecas","% obj. peças",null],["total","Total oficina",brlK],["projecao","Projeção fat.",brlK],["ticket","Ticket",brl],["margemPecas","Margem peças",pct],["pecasMo","Peças / MO",v=>nf1.format(v)+"×"]];
-  const cell = (r, [k,,f]) => { const v = r?.[k]; if (v == null) return `<td class="n muted">—</td>`; return `<td class="n">${f?f(v):pill(v)}</td>`; };
+  const cell = (r, [k,,f]) => { const v = r?.[k]; if (v == null) return `<td class="n muted">—</td>`; return `<td class="n"${dv(v)}>${f?f(v):pill(v)}</td>`; };
   const mix = r => r && r.total ? `<div class="bar2" title="MO ${pct(r.mo/r.total)} · Peças ${pct(r.pecas/r.total)}"><span style="width:${r.mo/r.total*100}%"></span><span style="width:${r.pecas/r.total*100}%"></span></div>` : "";
   document.getElementById("tblOficina").innerHTML =
     `<thead><tr><th>Loja</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th>MO × peças</th></tr></thead><tbody>` +
@@ -457,8 +459,8 @@ function renderEstoque(){
   const tot = {inicial:0,entradas:0,saidas:0,final:0};
   rows.forEach(([,e]) => e && Object.keys(tot).forEach(k => tot[k] += e[k] || 0));
   const varp = e => e && e.inicial ? e.final/e.inicial - 1 : null;
-  const vtd = v => v==null ? `<td class="n muted">—</td>` : `<td class="n delta ${v>0?"down":"up"}">${v>=0?"+":""}${pct(v)}</td>`;
-  const tds = e => e ? ["inicial","entradas","saidas","final"].map(k=>`<td class="n">${brlK(e[k])}</td>`).join("") + vtd(varp(e)) : `<td class="n muted" colspan="5">sem lançamento</td>`;
+  const vtd = v => v==null ? `<td class="n muted">—</td>` : `<td class="n delta ${v>0?"down":"up"}"${dv(v)}>${v>=0?"+":""}${pct(v)}</td>`;
+  const tds = e => e ? ["inicial","entradas","saidas","final"].map(k=>`<td class="n"${dv(e[k])}>${brlK(e[k])}</td>`).join("") + vtd(varp(e)) : `<td class="n muted" colspan="5">sem lançamento</td>`;
   t.innerHTML = `<thead><tr><th>Loja</th><th class="n">Saldo inicial</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo final</th><th class="n">Var.</th></tr></thead><tbody>` +
     rows.map(([l,e]) => `<tr><td>${esc(l)}</td>${tds(e)}</tr>`).join("") + `</tbody>` + (visao===CONS ? `<tfoot><tr><td>Total</td>${tds(tot)}</tr></tfoot>` : "");
 }
@@ -471,11 +473,20 @@ function renderRanking(){
     const k = r.nome + "|" + r.loja, a = acc.get(k) || {nome: r.nome, loja: r.loja, passagens: 0, total: 0};
     a.passagens += r.passagens || 0; a.total += r.total || 0; acc.set(k, a);
   }));
-  const lista = [...acc.values()].filter(r => visao===CONS || r.loja===visao).sort((a,b) => b.total - a.total).slice(0,10);
-  document.getElementById("rkNota").textContent = per.ms.length ? `por total oficina · ${notaPer(per)}${visao!==CONS?" · "+visao:""}` : "";
-  document.getElementById("tblRanking").innerHTML = `<thead><tr><th>#</th><th>Consultor</th>${visao===CONS?"<th>Loja</th>":""}<th class="n">Pass.</th><th class="n">Total oficina</th><th class="n">Ticket</th></tr></thead><tbody>` +
+  const todos = [...acc.values()].filter(r => visao===CONS || r.loja===visao);
+  todos.forEach(r => r.ticket = r.passagens ? r.total / r.passagens : null);
+  const {col, dir} = ordemRk;
+  const lista = todos.sort((a,b) => (a[col] == null) - (b[col] == null) || dir * ((a[col] ?? 0) - (b[col] ?? 0))).slice(0,10);
+  const nomesRk = {passagens: "passagens", total: "total oficina", ticket: "ticket"};
+  document.getElementById("rkNota").textContent = per.ms.length ? `${dir < 0 ? "maiores" : "menores"} em ${nomesRk[col]} · ${notaPer(per)}${visao!==CONS?" · "+visao:""}` : "";
+  const thRk = (k, rot) => `<th class="n ordena" tabindex="0" data-rk="${k}" aria-sort="${col===k?(dir<0?"descending":"ascending"):"none"}">${rot}${col===k?(dir<0?" ▼":" ▲"):""}</th>`;
+  document.getElementById("tblRanking").innerHTML = `<thead><tr><th>#</th><th>Consultor</th>${visao===CONS?"<th>Loja</th>":""}${thRk("passagens","Pass.")}${thRk("total","Total oficina")}${thRk("ticket","Ticket")}</tr></thead><tbody>` +
     (lista.length ? lista.map((r,i) => `<tr><td class="rank-n">${i+1}</td><td>${esc(r.nome)}</td>${visao===CONS?`<td class="muted">${esc(r.loja)}</td>`:""}<td class="n">${nf0.format(r.passagens)}</td><td class="n">${brlK(r.total)}</td><td class="n">${r.passagens?brl(r.total/r.passagens):"—"}</td></tr>`).join("")
       : `<tr><td colspan="6" class="muted">Nenhum consultor desta loja no export.</td></tr>`) + `</tbody>`;
+  document.querySelectorAll("#tblRanking th[data-rk]").forEach(th => {
+    const go = () => { const k = th.dataset.rk; ordemRk = {col: k, dir: ordemRk.col === k ? -ordemRk.dir : -1}; renderRanking(); };
+    th.onclick = go; th.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+  });
 }
 
 function renderQualidade(){
@@ -486,6 +497,47 @@ function renderQualidade(){
       : `<tr><td colspan="6" class="muted">Sem programa da montadora lançado para esta loja.</td></tr>`) + `</tbody>`;
 }
 
+// ---- Ordenar blocos do maior para o menor (e vice-versa) clicando no título da coluna ----
+// clique: maior→menor; de novo: menor→maior; de novo: volta à ordem original
+const dv = v => v == null || !isFinite(v) ? "" : ` data-v="${v}"`;
+let ordemRk = {col: "total", dir: -1};
+const ordens = {};
+function valorCelula(td){
+  if (!td) return null;
+  if (td.dataset.v != null) return Number(td.dataset.v);
+  const t = td.textContent.trim();
+  return t === "—" || t === "" ? null : t.toLocaleLowerCase("pt-BR");
+}
+function ordenavel(id){
+  const t = document.getElementById(id), tb = t.tBodies[0], ths = t.tHead ? [...t.tHead.rows[0].cells] : [];
+  if (!tb) return;
+  [...tb.rows].forEach((tr, i) => tr.dataset.i = i);
+  const o = ordens[id];
+  if (o && o.col < ths.length) {
+    const rows = [...tb.rows].sort((a, b) => {
+      const va = valorCelula(a.cells[o.col]), vb = valorCelula(b.cells[o.col]);
+      if (va == null || vb == null) return (va == null) - (vb == null);
+      return o.dir * (typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb), "pt-BR"));
+    });
+    rows.forEach(r => tb.appendChild(r));
+  }
+  ths.forEach((th, c) => {
+    th.classList.add("ordena"); th.tabIndex = 0;
+    th.setAttribute("aria-sort", o && o.col === c ? (o.dir < 0 ? "descending" : "ascending") : "none");
+    th.textContent = th.textContent.replace(/ [▼▲]$/, "") + (o && o.col === c ? (o.dir < 0 ? " ▼" : " ▲") : "");
+    const go = () => {
+      const atual = ordens[id];
+      // texto começa em A→Z; números começam no maior
+      const primeiro = c === 0 ? 1 : -1;
+      if (!atual || atual.col !== c) ordens[id] = {col: c, dir: primeiro};
+      else if (atual.dir === primeiro) ordens[id] = {col: c, dir: -primeiro};
+      else delete ordens[id];
+      render();
+    };
+    th.onclick = go; th.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+  });
+}
+
 function render(){
   document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
   document.getElementById("tituloMes").textContent = rotuloSel(true) + (visao!==CONS ? " · " + visao : "");
@@ -494,6 +546,7 @@ function render(){
   elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
   renderKpis(); renderLojas(); renderEvo(); renderConcl(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
+  ["tblLojas", "tblOficina", "tblEstoque"].forEach(ordenavel);
   document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
     `. Vários meses: faturamento e passagens somados; margem ponderada pelo faturamento, ticket pelas passagens, demais por média simples. Comparação com o período anterior de mesmo tamanho. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
 }
