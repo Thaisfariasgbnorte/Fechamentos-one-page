@@ -489,11 +489,12 @@ function renderRanking(){
   });
 }
 
+// resultado da montadora usa as mesmas faixas de cor (verde ≥ 100%, amarelo ≥ 90%, abaixo vermelho)
 function renderQualidade(){
   const q = D.qualidade.itens.filter(i => visao===CONS || i.loja===visao);
   document.getElementById("qmNota").textContent = D.qualidade.periodo ? `Referência: ${D.qualidade.periodo}` : "";
   document.getElementById("tblQualidade").innerHTML = `<thead><tr><th>Marca</th><th>Loja</th><th>Programa</th><th class="n">Meta</th><th class="n">Resultado</th><th>Status / observação</th></tr></thead><tbody>` +
-    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.meta!=null?pct(i.meta):"—"}</td><td class="n">${i.resultado!=null?`<span class="pill ${i.meta!=null?(i.resultado>=i.meta?"good":"bad"):"good"}">${pct(i.resultado)}</span>`:"—"}</td><td style="white-space:normal;min-width:220px">${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
+    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.meta!=null?pct(i.meta):"—"}</td><td class="n">${i.resultado!=null?`<span class="pill ${faixa(i.resultado)}">${pct(i.resultado)}</span>`:"—"}</td><td style="white-space:normal;min-width:220px">${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
       : `<tr><td colspan="6" class="muted">Sem programa da montadora lançado para esta loja.</td></tr>`) + `</tbody>`;
 }
 
