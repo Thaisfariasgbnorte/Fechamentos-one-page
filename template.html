@@ -42,6 +42,8 @@ button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var
 .kpi .val{font-family:var(--f-display);font-size:27px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
 .kpi .val.empty{font-size:15px;font-weight:500;color:var(--muted);font-family:var(--f-body)}
 .kpi .sub{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13px;color:var(--muted)}
+.kpi .aa{display:flex;align-items:baseline;gap:8px;padding:4px 8px;border-radius:6px;background:var(--surface-2)}
+.kpi .aa b{font-size:16px;font-variant-numeric:tabular-nums}
 .kpi svg{width:100%;height:30px;display:block}
 .pill{display:inline-block;font-size:12px;font-weight:700;padding:1px 7px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.none{background:var(--surface-2);color:var(--muted)}
@@ -342,12 +344,14 @@ function renderKpis(){
     const x = calc(ind, visao), {real} = serie(ind, visao);
     const delta = x.varAnt == null ? "" : `<span class="delta ${x.varAnt>=0?"up":"down"}">${x.varAnt>=0?"▲":"▼"} ${fmtVar(x, true)} vs ${x.nomeAnt}</span>`;
     const acum = x.ra == null || anoInteiro() ? "" : `<span>${somaInd(ind)?"Ano":"Média ano"}: ${fmt(ind, x.ra, true)}${x.pa!=null?" ("+pct(x.pa)+")":""}</span>`;
-    const d25 = x.var25 == null ? "" : `<span class="delta ${x.var25>=0?"up":"down"}">${x.var25>=0?"▲":"▼"} ${fmtVar({...x, varAnt: x.var25}, true)} vs 2025</span>`;
+    // Var. AA: período escolhido x mesmo período do ano anterior
+    const d25 = x.var25 == null ? "" : `<div class="aa"><span class="eyebrow">Var. AA</span><b class="delta ${x.var25>=0?"up":"down"}">${x.var25>=0?"▲":"▼"} ${fmtVar({...x, varAnt: x.var25}, true)}</b></div>`;
     const tipo = varios && x.r != null ? `<span>${somaInd(ind) ? "Soma" : "Média"} de ${x.n} ${x.n>1?"meses":"mês"}</span>` : "";
     return `<article class="kpi">
       <div class="top"><span class="eyebrow">${esc(ind.rotulo)}</span>${x.p!=null?pill(x.p):""}</div>
       <div class="val ${x.r==null?"empty":""}">${x.r==null?"Sem lançamento":fmt(ind, x.r, true)}</div>
-      <div class="sub">${tipo}${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:temMeta(ind)?"<span>Sem meta no período</span>":""}${delta}${d25}${acum}</div>
+      ${d25}
+      <div class="sub">${tipo}${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:temMeta(ind)?"<span>Sem meta no período</span>":""}${delta}${acum}</div>
       ${spark(real)}
     </article>`;
   }).join("");
