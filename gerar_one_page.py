@@ -97,12 +97,15 @@ def main(xlsx, saida):
         ini_com = secao.get("COMENTÁRIOS", ws.max_row) + 2
         comentarios = {ws.cell(r, 2).value: ws.cell(r, 3).value
                        for r in range(ini_com, ini_com + n + 1) if ws.cell(r, 3).value}
-        # quadro "REALIZADO 2025" (base da comparação 2026 x 2025), quando a aba tiver
+        # realizado 2025 (base da comparação 2026 x 2025), quando a planilha tiver
         real25, real25_cons = {}, [None] * 12
-        lin25 = next((r for r in range(1, ws.max_row + 1)
-                      if str(ws.cell(r, 2).value or "").startswith("REALIZADO 2025")), None)
-        if lin25:
-            real25, real25_cons = bloco(ws, lin25 + 2, n)
+        # aba BASE 2025: um quadro por indicador, com título "<ABA> 2025 ..."
+        if "BASE 2025" in wb.sheetnames:
+            b25 = wb["BASE 2025"]
+            lin25 = next((r for r in range(1, b25.max_row + 1)
+                          if str(b25.cell(r, 2).value or "").startswith(f"{aba} 2025")), None)
+            if lin25:
+                real25, real25_cons = bloco(b25, lin25 + 2, n)
         dados["indicadores"].append({
             "chave": chave, "rotulo": rotulo, "unidade": unidade, "consolidacao": consol,
             "fonte": fontes.get(rotulo, fontes.get(rotulo.upper(), "")),

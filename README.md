@@ -43,8 +43,8 @@ visão escolhidos. Escolhendo uma loja, todas as tabelas mostram só aquela loja
 **Comentários e ações do gerente**: único campo editável da página, um texto por período e visão.
 No claude.ai fica salvo para todos que abrem a página; aberto como arquivo, só no próprio navegador.
 
-**2026 × 2025**: as abas FATURAMENTO, MARGEM BRUTA, PASSAGENS e TICKET MÉDIO têm o quadro
-"REALIZADO 2025" (linhas 64 em diante) para digitar 2025 e o quadro "VARIAÇÃO 2026 x 2025" calculado.
+**2026 × 2025**: a aba BASE 2025 (depois de TICKET MÉDIO) tem, para faturamento, margem, passagens e
+ticket, um quadro amarelo para digitar 2025 e o quadro "VARIAÇÃO 2026 x 2025" calculado mês a mês.
 Com 2025 preenchido, os cartões mostram a variação "vs 2025" e o gráfico mensal ganha a linha tracejada de 2025.
 
 Porcentagens aparecem sem casa decimal (98,8% → 99%).
