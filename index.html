@@ -413,8 +413,7 @@ function etiqueta(x, y, txt, cor){
   const w = txt.length * 8.6 + 10, h = 20;
   return `<rect x="${x - w/2}" y="${y - h/2}" width="${w}" height="${h}" rx="4" fill="${cor}"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">${txt}</text>`;
 }
-function renderTicket(){
-  const el = document.getElementById("tk");
+function renderTicket(H = 380, el = document.getElementById("tk")){
   document.getElementById("tkTitulo").textContent = `Passagens × ticket médio · ${visao===CONS?"Consolidado":visao}`;
   document.getElementById("tkNota").textContent = "export Linx/NBS";
   document.getElementById("tkLegenda").innerHTML = `<span><i style="background:${TK_BARRA}"></i>Passagens</span>` +
@@ -423,7 +422,7 @@ function renderTicket(){
   const dados = meses.map(m => { const o = D.oficina.meses[m]; return [m, visao === CONS ? o.cons : o.porLoja[visao]]; })
                      .filter(([, r]) => r && r.passagens);
   if (!dados.length){ el.innerHTML = `<p class="muted">Sem export Linx/NBS com passagens para esta visão.</p>`; return; }
-  const W=720, H=380, L=8, R=8, T=24, B=30, bw = (W-L-R)/12;
+  const W=720, L=8, R=8, T=24, B=30, bw = (W-L-R)/12;
   const maxP = niceMax(Math.max(...dados.map(([, r]) => r.passagens)) * 1.1);
   const tks = dados.flatMap(([, r]) => TK_LINHAS.map(([, , , f]) => f(r) / r.passagens)).filter(v => isFinite(v));
   const maxT = Math.max(...tks) * 1.1;
@@ -446,7 +445,7 @@ function renderTicket(){
       s += etiqueta(cx(m), ty, nf0.format(v), cor);
     });
   });
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Passagens e ticket médio por mês">${s}</svg>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" font-family="Public Sans, system-ui, sans-serif" role="img" aria-label="Passagens e ticket médio por mês">${s}</svg>`;
 }
 
 // gráfico de evolução (meta, realizado e 2025) de um indicador; null quando não há dado
@@ -465,7 +464,7 @@ function svgEvo(ind, W, H){
     if (on) s += `<rect x="${x0+1}" y="${T-18}" width="${bw-2}" height="${H-T-B+18}" fill="var(--accent-soft)" rx="3"/>`;
     if (meta[k]) s += `<rect x="${x0+bw*.14}" y="${y(meta[k])}" width="${bw*.72}" height="${Math.max(0,y(min)-y(meta[k]))}" fill="var(--meta)" rx="2"><title>Meta ${nm}: ${fmt(ind, meta[k])}</title></rect>`;
     if (ok(real[k])) { const top = y(Math.max(real[k],0)), h = Math.abs(y(real[k]) - y(0));
-      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--mark)" opacity="${on?1:.55}" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
+      s += `<rect x="${x0+bw*.3}" y="${top}" width="${bw*.4}" height="${h}" fill="var(--mark)" rx="2"><title>Realizado ${nm}: ${fmt(ind, real[k])}</title></rect>`; }
     if (on && sel.length <= 4 && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="${sel.length > 2 ? 12 : 14}" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
     s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="14" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${nm}</text>`;
   });
@@ -474,7 +473,7 @@ function svgEvo(ind, W, H){
     s += `<polyline points="${pts.map(k => `${cx(k)},${y(r25[k])}`).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/>`;
     s += pts.map(k => `<circle cx="${cx(k)}" cy="${y(r25[k])}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"><title>2025 ${MES[k]}: ${fmt(ind, r25[k])}</title></circle>`).join("");
   }
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(ind.rotulo)}: meta e realizado por mês">${s}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" font-family="Public Sans, system-ui, sans-serif" role="img" aria-label="${esc(ind.rotulo)}: meta e realizado por mês">${s}</svg>`;
 }
 function renderEvo(){
   const ind = IND[evoInd];
@@ -486,11 +485,11 @@ function renderEvo(){
     `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`;
 }
 // só no PDF: a evolução de todos os indicadores com dado, dois por linha
-function renderEvoPdf(){
+function renderEvoPdf(Hmini = 330, el = document.getElementById("evoPdf")){
   document.getElementById("evoPdfTitulo").textContent = `Evolução mensal · ${visao===CONS?"Consolidado":visao}`;
   document.getElementById("evoPdfLeg25").hidden = !D.indicadores.some(i => serie(i, visao, 2025).real.some(ok));
-  document.getElementById("evoPdf").innerHTML = D.indicadores
-    .map(i => [i, svgEvo(i, 560, 330)]).filter(([, g]) => g)
+  el.innerHTML = D.indicadores
+    .map(i => [i, svgEvo(i, 560, Hmini)]).filter(([, g]) => g)
     .map(([i, g]) => `<div class="mini"><h4>${esc(i.rotulo)}</h4>${g}</div>`).join("");
 }
 
@@ -679,25 +678,54 @@ async function gerarPdf(){
       });
     });
   };
-  const util = W - 2*M;
-  let y = M, pagina = 1;
+  const util = W - 2*M, GAP = 3;
+  // gráficos que podem ser redesenhados mais altos para ocupar o fim de uma página
+  // o gráfico redesenhado na cópia não herda as cores do tema: troca var(--x) pela cor real
+  const cores = el => { const st = getComputedStyle(document.documentElement);
+    el.innerHTML = el.innerHTML.replace(/var\((--[\w-]+)\)/g, (m, n) => st.getPropertyValue(n).trim() || m); };
+  const esticar = {
+    "#painelTk": (doc, extra) => { const el = doc.getElementById("tk"), w = el.getBoundingClientRect().width || 900; renderTicket(380 + extra * 720 / w, el); cores(el); },
+    "#painelEvoPdf": (doc, extra) => { const el = doc.getElementById("evoPdf"), w = (el.getBoundingClientRect().width || 900) / 2; renderEvoPdf(330 + extra / 2 * 560 / w, el); cores(el); },
+  };
+  const capturar = (el, ajuste) => html2canvas(el, {scale: 2, backgroundColor: "#ffffff", windowWidth: LARG,
+    onclone: doc => { prepara(doc); if (ajuste) ajuste(doc); }});
+  const itens = [];
   for (const seletor of blocos) {
     const el = document.querySelector(seletor);
     if (!el) continue;
-    const canvas = await html2canvas(el, {scale: 2, backgroundColor: "#ffffff", windowWidth: LARG, onclone: prepara});
-    if (!canvas.width || !canvas.height) continue;
-    let larg = util, h = canvas.height * util / canvas.width;
-    // quase cabe no fim da página: reduz até 15% em vez de deixar o espaço em branco
-    const resta = H - M - y;
-    if (h > resta && h * 0.85 <= resta) { larg = util * resta / h; h = resta; }
-    if (y + h > H - M && y > (pagina === 1 ? M : TOPO)) {
-      pdf.addPage(); pagina++; y = TOPO;
+    const canvas = await capturar(el);
+    if (canvas.width && canvas.height) itens.push({seletor, el, canvas, h: canvas.height * util / canvas.width});
+  }
+  // paginação: bloco que não cabe vai para a página seguinte; se quase cabe, reduz até 15%
+  const paginas = [[]];
+  let y = M;
+  for (const it of itens) {
+    const topo = paginas.length === 1 ? M : TOPO, resta = H - M - y;
+    it.larg = util;
+    if (it.h > resta && it.h * 0.85 <= resta) { it.larg = util * resta / it.h; it.h = resta; }
+    else if (it.h > resta && y > topo) { paginas.push([]); y = TOPO; }
+    it.y = y; paginas[paginas.length - 1].push(it); y += it.h + GAP;
+  }
+  // espaço que sobra embaixo: estica o gráfico da página e empurra para baixo o que vem depois dele
+  for (const pg of paginas) {
+    const ult = pg[pg.length - 1], sobra = H - M - (ult.y + ult.h);
+    const graf = [...pg].reverse().find(it => esticar[it.seletor] && it.larg === util);
+    if (sobra > 8 && graf) {
+      const extraCss = sobra * (graf.canvas.width / 2) / util;   // mm -> px da captura
+      const c = await capturar(graf.el, doc => esticar[graf.seletor](doc, extraCss));
+      const novoH = Math.min(c.height * util / c.width, graf.h + sobra), delta = novoH - graf.h;
+      graf.canvas = c; graf.h = novoH;
+      pg.slice(pg.indexOf(graf) + 1).forEach(it => it.y += delta);
+    }
+  }
+  paginas.forEach((pg, i) => {
+    if (i) {
+      pdf.addPage();
       pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.setTextColor(90);
       pdf.text(`${D.empresa} · One Page Pós-Vendas · ${rotuloSel(true)} · ${visao===CONS ? "Consolidado" : visao}`, M, 8);
     }
-    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", M + (util - larg) / 2, y, larg, h);
-    y += h + 3;
-  }
+    pg.forEach(it => pdf.addImage(it.canvas.toDataURL("image/jpeg", 0.92), "JPEG", M + (util - it.larg) / 2, it.y, it.larg, it.h));
+  });
   const total = pdf.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     pdf.setPage(i); pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.setTextColor(90);
