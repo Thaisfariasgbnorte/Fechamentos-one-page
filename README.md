@@ -18,7 +18,7 @@ Página única (HTML) com os indicadores de pós-vendas gerada a partir da plani
 
 ## O que a página mostra
 
-- **Indicadores do mês**: faturamento, margem bruta, passagens, ticket médio, FFV e DID (e NPS, se a aba existir) —
+- **Indicadores do mês**: faturamento, margem bruta, passagens, ticket médio, Retorno e Chamado (abas RETORNO e CHAMADO; antes FFV e DID) —
   realizado, meta, % da meta (verde/amarelo/vermelho pelas faixas da CONFIGURAÇÃO),
   variação vs mês anterior e acumulado/média do ano.
 - **1/2 Resultados**: desempenho por loja, evolução mensal (meta × realizado) por indicador,
@@ -39,6 +39,15 @@ Pass., Total oficina e Ticket escolhem por qual valor o top 10 é montado (maior
 
 **Exportar PDF** gera 2 páginas A4 paisagem (resultados; oficina, estoque e qualidade) do período e da
 visão escolhidos. Escolhendo uma loja, todas as tabelas mostram só aquela loja.
+
+**Comentários e ações do gerente**: único campo editável da página, um texto por período e visão.
+No claude.ai fica salvo para todos que abrem a página; aberto como arquivo, só no próprio navegador.
+
+**2026 × 2025**: as abas FATURAMENTO, MARGEM BRUTA, PASSAGENS e TICKET MÉDIO têm o quadro
+"REALIZADO 2025" (linhas 64 em diante) para digitar 2025 e o quadro "VARIAÇÃO 2026 x 2025" calculado.
+Com 2025 preenchido, os cartões mostram a variação "vs 2025" e o gráfico mensal ganha a linha tracejada de 2025.
+
+Porcentagens aparecem sem casa decimal (98,8% → 99%).
 
 ## Arquivos
 

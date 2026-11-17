@@ -88,6 +88,14 @@ tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
 .alert{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 10px;font-size:13px;font-weight:600}
 .rank-n{font-family:var(--f-display);font-weight:800;color:var(--accent)}
 .folha{display:flex;flex-direction:column;gap:20px}
+.gerente{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.gerente{grid-template-columns:1fr}}
+.campo{display:flex;flex-direction:column;gap:6px;min-width:0}
+textarea{width:100%;font:15px/1.45 var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;resize:vertical}
+textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.gerente-pe{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.texto-pdf{white-space:pre-wrap;font-size:15px;border:1px solid var(--line);border-radius:6px;padding:10px;min-height:5.5em}
+.pdf .gerente-pe{display:none}
 .so-pdf{display:none;font:700 16px var(--f-display);border-bottom:2px solid var(--ink);padding-bottom:8px}
 .btn-pdf{font:700 14px var(--f-body);background:var(--ink);color:var(--bg);border:1px solid var(--ink);border-radius:6px;padding:7px 14px;cursor:pointer}
 .btn-pdf:hover{background:var(--bg);color:var(--ink)}
@@ -122,7 +130,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="tbl"><table id="tblLojas"></table></div>
     </section>
     <section class="panel lado">
-      <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span></div></div>
+      <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span><span id="evoLeg25" hidden><i style="background:transparent;border:2px dashed var(--ink)"></i>2025</span></div></div>
       <div class="tabs" id="evoTabs" role="group" aria-label="Indicador do gráfico"></div>
       <div class="chart" id="evo"></div>
     </section>
@@ -130,6 +138,14 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="hd"><h3 id="tkTitulo">Passagens × ticket médio</h3><span class="note" id="tkNota"></span></div>
       <div class="legend" id="tkLegenda"></div>
       <div class="chart" id="tk"></div>
+    </section>
+    <section class="panel span-12" id="painelGerente">
+      <div class="hd"><h3>Comentários e ações do mês · gerente</h3><span class="note" id="gerNota"></span></div>
+      <div class="gerente">
+        <label class="campo" for="gerComentario"><span class="eyebrow">Comentário</span><textarea id="gerComentario" rows="4" placeholder="O que explica o resultado do período"></textarea></label>
+        <label class="campo" for="gerAcao"><span class="eyebrow">Ação</span><textarea id="gerAcao" rows="4" placeholder="O que será feito, por quem e até quando"></textarea></label>
+      </div>
+      <div class="gerente-pe"><button type="button" class="btn-pdf" id="gerSalvar">Salvar comentário</button><span class="note" id="gerStatus" aria-live="polite"></span></div>
     </section>
   </div>
  </div>
@@ -155,7 +171,6 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="tbl"><table id="tblQualidade"></table></div>
     </section>
   </div>
-  <footer id="rodape"></footer>
  </div>
 </div>
 
@@ -165,13 +180,14 @@ const MES = D.meses, LOJAS = D.lojas, CONS = "CONSOLIDADO";
 const IND = Object.fromEntries(D.indicadores.map(i => [i.chave, i]));
 const nf0 = new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0});
 const nf1 = new Intl.NumberFormat("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
-const pct = v => v == null || !isFinite(v) ? "—" : nf1.format(v*100) + "%";
+// porcentagens sem casa decimal, arredondando a partir de ,5 (98,8% → 99%)
+const pct = v => v == null || !isFinite(v) ? "—" : nf0.format(v*100) + "%";
 const brl = v => "R$ " + nf0.format(v);
 const brlK = v => Math.abs(v) >= 1e6 ? "R$ " + nf1.format(v/1e6) + " mi" : Math.abs(v) >= 1e3 ? "R$ " + nf0.format(v/1e3) + " mil" : brl(v);
 function fmt(ind, v, curto){
   if (v == null) return "—";
   if (ind.unidade === "R$") return curto && Math.abs(v) >= 1e5 ? brlK(v) : brl(v);
-  if (ind.unidade === "%") return nf1.format(v) + "%";
+  if (ind.unidade === "%") return nf0.format(v) + "%";
   if (ind.unidade === "pts") return nf1.format(v);
   return nf0.format(v);
 }
@@ -185,7 +201,8 @@ const lojasVis = () => visao === CONS ? LOJAS : [visao];
 const temMeta = i => [i.metaCons, ...Object.values(i.meta)].some(a => a.some(v => v));
 
 // série mensal (12) de realizado e meta para a visão
-function serie(ind, visao){
+function serie(ind, visao, ano){
+  if (ano === 2025) return {real: (visao === CONS ? ind.real2025Cons : ind.real2025?.[visao]) || [], meta: []};
   return visao === CONS ? {real: ind.realCons, meta: ind.metaCons} : {real: ind.real[visao] || [], meta: ind.meta[visao] || []};
 }
 const ok = v => v != null;
@@ -193,8 +210,8 @@ const soma = a => a.reduce((x,y)=>x+y,0);
 
 // agrega um indicador num conjunto de meses: soma (faturamento, passagens), média ponderada
 // pelo faturamento (margem) ou pelas passagens (ticket), ou média simples (FFV, DID, NPS)
-function agrega(ind, visao, meses){
-  const {real, meta} = serie(ind, visao);
+function agrega(ind, visao, meses, ano){
+  const {real, meta} = serie(ind, visao, ano);
   const ms = meses.filter(m => ok(real[m]));
   if (!ms.length) return {r: null, mt: null, p: null, n: 0};
   let r, mt = null;
@@ -204,7 +221,7 @@ function agrega(ind, visao, meses){
     if (comMeta.length) mt = soma(comMeta.map(m => meta[m]));
   } else {
     const base = ind.consolidacao === "media_pond_fat" ? IND.fat : ind.consolidacao === "media_pond_pass" ? IND.pass : null;
-    const pesoS = base ? serie(base, visao).real : null;
+    const pesoS = base ? serie(base, visao, ano).real : null;
     const media = (vals, mm) => {
       const pesos = pesoS ? mm.map(m => pesoS[m]) : null;
       if (pesos && pesos.every(p => p > 0)) return soma(mm.map((m,i) => vals[m]*pesos[i])) / soma(pesos);
@@ -253,7 +270,15 @@ function calc(ind, visao){
   // indicadores em % comparam em pontos percentuais; os demais em variação relativa
   const pp = ind.unidade === "%";
   const varAnt = xa && x.r != null && xa.r != null && (pp || xa.r) ? (pp ? x.r - xa.r : x.r/xa.r - 1) : null;
-  return {...x, varAnt, pp, nomeAnt: ant ? nomeMeses(ant) : "",
+  // 2026 x 2025: só os meses do período lançados nos dois anos
+  const r25 = serie(ind, visao, 2025).real, r26 = serie(ind, visao).real;
+  const comuns = sel.filter(m => ok(r25[m]) && ok(r26[m]));
+  let var25 = null;
+  if (comuns.length){
+    const a = agrega(ind, visao, comuns).r, b = agrega(ind, visao, comuns, 2025).r;
+    if (a != null && b != null && (pp || b)) var25 = pp ? a - b : a/b - 1;
+  }
+  return {...x, varAnt, pp, var25, nomeAnt: ant ? nomeMeses(ant) : "",
           ra: ano.r, ma: ano.mt, pa: ano.p};
 }
 
@@ -317,11 +342,12 @@ function renderKpis(){
     const x = calc(ind, visao), {real} = serie(ind, visao);
     const delta = x.varAnt == null ? "" : `<span class="delta ${x.varAnt>=0?"up":"down"}">${x.varAnt>=0?"▲":"▼"} ${fmtVar(x, true)} vs ${x.nomeAnt}</span>`;
     const acum = x.ra == null || anoInteiro() ? "" : `<span>${somaInd(ind)?"Ano":"Média ano"}: ${fmt(ind, x.ra, true)}${x.pa!=null?" ("+pct(x.pa)+")":""}</span>`;
+    const d25 = x.var25 == null ? "" : `<span class="delta ${x.var25>=0?"up":"down"}">${x.var25>=0?"▲":"▼"} ${fmtVar({...x, varAnt: x.var25}, true)} vs 2025</span>`;
     const tipo = varios && x.r != null ? `<span>${somaInd(ind) ? "Soma" : "Média"} de ${x.n} ${x.n>1?"meses":"mês"}</span>` : "";
     return `<article class="kpi">
       <div class="top"><span class="eyebrow">${esc(ind.rotulo)}</span>${x.p!=null?pill(x.p):""}</div>
       <div class="val ${x.r==null?"empty":""}">${x.r==null?"Sem lançamento":fmt(ind, x.r, true)}</div>
-      <div class="sub">${tipo}${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:temMeta(ind)?"<span>Sem meta no período</span>":""}${delta}${acum}</div>
+      <div class="sub">${tipo}${x.mt?`<span>Meta ${fmt(ind, x.mt, true)}</span>`:temMeta(ind)?"<span>Sem meta no período</span>":""}${delta}${d25}${acum}</div>
       ${spark(real)}
     </article>`;
   }).join("");
@@ -406,7 +432,10 @@ function renderEvo(){
   const ind = IND[evoInd], {real, meta} = serie(ind, visao);
   document.getElementById("evoTitulo").textContent = `Evolução mensal · ${ind.rotulo} · ${visao===CONS?"Consolidado":visao}`;
   evoTabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.id === "evo-"+evoInd));
-  const vals = [...real, ...meta].filter(v => ok(v));
+  const r25 = serie(ind, visao, 2025).real;
+  const tem25 = r25.some(ok);
+  document.getElementById("evoLeg25").hidden = !tem25;
+  const vals = [...real, ...meta, ...r25].filter(v => ok(v));
   const el = document.getElementById("evo");
   if (!vals.length){ el.innerHTML = `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`; return; }
   const W=720,H=380,L=78,R=8,T=22,B=30, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
@@ -423,6 +452,11 @@ function renderEvo(){
     if (on && sel.length <= 4 && ok(real[k])) s += `<text x="${cx}" y="${Math.min(y(real[k]), meta[k]?y(meta[k]):H)-6}" text-anchor="middle" font-size="${sel.length > 2 ? 12 : 14}" font-weight="700" fill="var(--ink)">${fmt(ind, real[k], true)}</text>`;
     s += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="14" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${nm}</text>`;
   });
+  if (tem25){
+    const pts = MES.map((_, k) => k).filter(k => ok(r25[k])), cx = k => L + k*bw + bw/2;
+    s += `<polyline points="${pts.map(k => `${cx(k)},${y(r25[k])}`).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/>`;
+    s += pts.map(k => `<circle cx="${cx(k)}" cy="${y(r25[k])}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"><title>2025 ${MES[k]}: ${fmt(ind, r25[k])}</title></circle>`).join("");
+  }
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meta e realizado por mês">${s}</svg>`;
 }
 
@@ -517,9 +551,9 @@ function renderRanking(){
 function renderQualidade(){
   const q = D.qualidade.itens.filter(i => visao===CONS || i.loja===visao);
   document.getElementById("qmNota").textContent = D.qualidade.periodo ? `Referência: ${D.qualidade.periodo}` : "";
-  document.getElementById("tblQualidade").innerHTML = `<thead><tr><th>Marca</th><th>Loja</th><th>Programa</th><th class="n">Meta</th><th class="n">Resultado</th><th>Status / observação</th></tr></thead><tbody>` +
-    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.meta!=null?pct(i.meta):"—"}</td><td class="n">${i.resultado!=null?`<span class="pill ${faixa(i.resultado)}">${pct(i.resultado)}</span>`:"—"}</td><td style="white-space:normal;min-width:220px">${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
-      : `<tr><td colspan="6" class="muted">Sem programa da montadora lançado para esta loja.</td></tr>`) + `</tbody>`;
+  document.getElementById("tblQualidade").innerHTML = `<thead><tr><th>Marca</th><th>Loja</th><th>Programa</th><th class="n">Resultado</th><th>Status / observação</th></tr></thead><tbody>` +
+    (q.length ? q.map(i => `<tr><td class="muted">${esc(i.marca)}</td><td>${esc(i.loja)}</td><td>${esc(i.programa)}</td><td class="n">${i.resultado!=null?`<span class="pill ${faixa(i.resultado)}">${pct(i.resultado)}</span>`:"—"}</td><td style="white-space:normal;min-width:220px">${esc([i.status,i.obs].filter(Boolean).join(" — "))}</td></tr>`).join("")
+      : `<tr><td colspan="5" class="muted">Sem programa da montadora lançado para esta loja.</td></tr>`) + `</tbody>`;
 }
 
 // ---- Ordenar blocos do maior para o menor (e vice-versa) clicando no título da coluna ----
@@ -572,10 +606,8 @@ function render(){
   elVisao.value = visao;
   renderKpis(); renderLojas(); renderEvo(); renderTicket(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
   ["tblLojas", "tblOficina", "tblEstoque"].forEach(ordenavel);
-  document.getElementById("rodape").textContent = "Fontes — " + D.indicadores.map(i => `${i.rotulo}: ${i.fonte}`).join(" · ") +
-    `. Vários meses: faturamento e passagens somados; margem ponderada pelo faturamento, ticket pelas passagens, demais por média simples. Comparação com o período anterior de mesmo tamanho. Faixas: verde ≥ ${pct(D.faixaVerde)}, amarelo ≥ ${pct(D.faixaAmarela)}.`;
+  carregarComentario();
 }
-render();
 
 // ---- Exportar PDF: A4 paisagem, folha 1 (resultados) e folha 2 (oficina, estoque, qualidade) ----
 const carregar = src => new Promise((ok_, erro) => {
@@ -594,7 +626,10 @@ async function gerarPdf(){
   const canvases = [];
   for (const id of folhas) canvases.push(await html2canvas(document.getElementById(id), {
     scale: 2, backgroundColor: "#ffffff", windowWidth: LARG + 40, width: LARG,
-    onclone: doc => { doc.body.classList.add("pdf"); const f = doc.getElementById(id); f.style.width = LARG + "px"; f.style.minHeight = ALT + "px"; },
+    onclone: doc => {
+      doc.body.classList.add("pdf"); const f = doc.getElementById(id); f.style.width = LARG + "px"; f.style.minHeight = ALT + "px";
+      f.querySelectorAll("textarea").forEach(t => { const d = doc.createElement("div"); d.className = "texto-pdf"; d.textContent = document.getElementById(t.id).value || "—"; t.replaceWith(d); });
+    },
   }));
   // mesma escala nas duas páginas: a da folha que precisa encolher mais
   const r = Math.min(...canvases.map(c => Math.min((W - 2*M) / c.width, (H - 2*M) / c.height)));
@@ -624,4 +659,51 @@ elPdf.onclick = async () => {
     elPdfStatus.textContent = "Erro ao gerar o PDF"; console.error(e);
   } finally { elPdf.disabled = false; }
 };
+// ---- Comentários e ações do gerente: única parte editável, um texto por período e visão ----
+// No claude.ai fica salvo para todos que abrem a página (armazenamento do Artifact);
+// aberto como arquivo, fica só neste navegador.
+const elGerCom = document.getElementById("gerComentario"), elGerAcao = document.getElementById("gerAcao");
+const elGerStatus = document.getElementById("gerStatus"), elGerSalvar = document.getElementById("gerSalvar");
+let comentarios = {}, dbCom = null, chaveAtual = null, sujo = false;
+const chaveComentario = () => `${D.ano}-${sel.map(m => m + 1).join("_")}-${(visao === CONS ? "consolidado" : visao)
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+function carregarComentario(){
+  document.getElementById("gerNota").textContent = `${rotuloSel(false)} · ${visao === CONS ? "Consolidado" : visao}`;
+  const k = chaveComentario();
+  if (k === chaveAtual && sujo) return;  // não apaga o que está sendo digitado
+  const c = comentarios[k] || {};
+  elGerCom.value = c.comentario || ""; elGerAcao.value = c.acao || "";
+  chaveAtual = k; sujo = false;
+  elGerStatus.textContent = c.atualizadoEm ? `Salvo em ${new Date(c.atualizadoEm).toLocaleString("pt-BR", {dateStyle: "short", timeStyle: "short"})}` : "";
+}
+[elGerCom, elGerAcao].forEach(t => t.oninput = () => { sujo = true; elGerStatus.textContent = "Alterações não salvas"; });
+elGerSalvar.onclick = async () => {
+  const k = chaveComentario();
+  const dados = {comentario: elGerCom.value.trim(), acao: elGerAcao.value.trim(), periodo: rotuloSel(false),
+                 visao: visao === CONS ? "Consolidado" : visao, atualizadoEm: new Date().toISOString()};
+  elGerSalvar.disabled = true; elGerStatus.textContent = "Salvando…";
+  try {
+    if (dbCom) await dbCom.collection("comentarios").doc(k).set(dados);
+    else { comentarios[k] = dados; try { localStorage.setItem("onepage-comentarios", JSON.stringify(comentarios)); } catch(e){} }
+    comentarios[k] = dados; sujo = false; chaveAtual = k;
+    elGerStatus.textContent = "Salvo";
+  } catch (e) {
+    elGerStatus.textContent = e?.code === "resource_exhausted" ? "Muitas gravações seguidas; tente de novo em instantes" : "Não foi possível salvar. Você precisa ter permissão de edição nesta página.";
+  } finally { elGerSalvar.disabled = false; }
+};
+(async () => {
+  if (!window.claude?.use) {
+    try { comentarios = JSON.parse(localStorage.getItem("onepage-comentarios") || "{}"); } catch(e){}
+    carregarComentario();
+    return;
+  }
+  const db = await window.claude.use("db");
+  if (!db) { elGerStatus.textContent = "Entre no claude.ai para ver e salvar os comentários."; elGerSalvar.disabled = true; return; }
+  dbCom = db;
+  db.collection("comentarios").onSnapshot(q => {
+    comentarios = Object.fromEntries(q.docs.map(d => [d.id, d.data()]));
+    carregarComentario();
+  }, () => { elGerStatus.textContent = "Comentários indisponíveis no momento."; });
+})();
+render();
 </script>

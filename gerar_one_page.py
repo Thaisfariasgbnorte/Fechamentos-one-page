@@ -23,8 +23,8 @@ INDICADORES = [
     ("PASSAGENS", "pass", "Passagens", "qtd", "soma"),
     ("TICKET MÉDIO", "ticket", "Ticket médio", "R$", "media_pond_pass"),
     ("NPS", "nps", "NPS", "pts", "media"),
-    ("FFV", "ffv", "FFV", "%", "media"),
-    ("DID", "did", "DID", "%", "media"),
+    (("RETORNO", "FFV"), "ffv", "Retorno", "%", "media"),
+    (("CHAMADO", "DID"), "did", "Chamado", "%", "media"),
 ]
 
 
@@ -85,7 +85,9 @@ def main(xlsx, saida):
     }
 
     for aba, chave, rotulo, unidade, consol in INDICADORES:
-        if aba not in wb.sheetnames:
+        # aba pode ter mais de um nome (ex.: RETORNO, antes FFV)
+        aba = next((a for a in ((aba,) if isinstance(aba, str) else aba) if a in wb.sheetnames), None)
+        if not aba:
             continue
         ws = wb[aba]
         # seções localizadas pelo rótulo da coluna B (META, COMENTÁRIOS); dados 2 linhas abaixo
@@ -95,11 +97,18 @@ def main(xlsx, saida):
         ini_com = secao.get("COMENTÁRIOS", ws.max_row) + 2
         comentarios = {ws.cell(r, 2).value: ws.cell(r, 3).value
                        for r in range(ini_com, ini_com + n + 1) if ws.cell(r, 3).value}
+        # quadro "REALIZADO 2025" (base da comparação 2026 x 2025), quando a aba tiver
+        real25, real25_cons = {}, [None] * 12
+        lin25 = next((r for r in range(1, ws.max_row + 1)
+                      if str(ws.cell(r, 2).value or "").startswith("REALIZADO 2025")), None)
+        if lin25:
+            real25, real25_cons = bloco(ws, lin25 + 2, n)
         dados["indicadores"].append({
             "chave": chave, "rotulo": rotulo, "unidade": unidade, "consolidacao": consol,
-            "fonte": fontes.get(rotulo, ""),
+            "fonte": fontes.get(rotulo, fontes.get(rotulo.upper(), "")),
             "real": real, "realCons": real_cons, "meta": meta, "metaCons": meta_cons,
             "comentarios": comentarios,
+            "real2025": real25, "real2025Cons": real25_cons,
         })
 
     # Oficina: exports Linx/NBS de cada mês; a loja de cada linha vem da aba LIGAÇÃO EXPORTS
@@ -176,7 +185,12 @@ def main(xlsx, saida):
             "resultado": num(qm.cell(r, 6).value), "status": qm.cell(r, 7).value,
             "obs": qm.cell(r, 8).value,
         })
-    dados["qualidade"] = {"periodo": qm["C4"].value, "itens": qualidade}
+    periodo = qm["C4"].value
+    if hasattr(periodo, "month"):  # data: vira "outubro/2026"
+        nomes = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto",
+                 "setembro", "outubro", "novembro", "dezembro"]
+        periodo = f"{nomes[periodo.month - 1]}/{periodo.year}"
+    dados["qualidade"] = {"periodo": periodo, "itens": qualidade}
 
     template = (Path(__file__).parent / "template.html").read_text(encoding="utf-8")
     html = template.replace("/*__DADOS__*/null", json.dumps(dados, ensure_ascii=False))
