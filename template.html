@@ -109,6 +109,11 @@ textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 /* aplicado só na cópia usada para gerar o PDF */
 .pdf .controls{display:none} .pdf .so-pdf{display:block} .pdf .tbl{overflow:visible}
 /* PDF em retrato: blocos empilhados na largura da página, letra de leitura */
+.so-pdf-bloco{display:none}
+.evo-grade{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+.evo-grade h4{margin:0 0 2px;font:700 15px var(--f-display)}
+.evo-grade svg{width:100%;height:auto;display:block}
+.pdf .so-pdf-bloco{display:flex}
 .pdf .page-tag{display:none} .pdf #lojasNota{display:none} .pdf .kpi.vazio{display:none} .pdf .col-vazia{display:none}
 .pdf table{font-size:14px} .pdf th{font-size:11.5px} .pdf td,.pdf th{padding:5px 5px} .pdf td:first-child{white-space:normal}
 .pdf .panel{padding:14px}
@@ -142,6 +147,10 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="hd"><h3 id="evoTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span><span id="evoLeg25" hidden><i style="background:transparent;border:2px dashed var(--ink)"></i>2025</span></div></div>
       <div class="tabs" id="evoTabs" role="group" aria-label="Indicador do gráfico"></div>
       <div class="chart" id="evo"></div>
+    </section>
+    <section id="painelEvoPdf" class="panel span-12 so-pdf-bloco">
+      <div class="hd"><h3 id="evoPdfTitulo">Evolução mensal</h3><div class="legend"><span><i style="background:var(--meta)"></i>Meta</span><span><i style="background:var(--mark)"></i>Realizado</span><span id="evoPdfLeg25" hidden><i style="background:transparent;border:2px dashed var(--ink)"></i>2025</span></div></div>
+      <div class="evo-grade" id="evoPdf"></div>
     </section>
     <section id="painelTk" class="panel lado">
       <div class="hd"><h3 id="tkTitulo">Passagens × ticket médio</h3><span class="note" id="tkNota"></span></div>
@@ -440,17 +449,13 @@ function renderTicket(){
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Passagens e ticket médio por mês">${s}</svg>`;
 }
 
-function renderEvo(){
-  const ind = IND[evoInd], {real, meta} = serie(ind, visao);
-  document.getElementById("evoTitulo").textContent = `Evolução mensal · ${ind.rotulo} · ${visao===CONS?"Consolidado":visao}`;
-  evoTabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.id === "evo-"+evoInd));
-  const r25 = serie(ind, visao, 2025).real;
-  const tem25 = r25.some(ok);
-  document.getElementById("evoLeg25").hidden = !tem25;
+// gráfico de evolução (meta, realizado e 2025) de um indicador; null quando não há dado
+function svgEvo(ind, W, H){
+  const {real, meta} = serie(ind, visao);
+  const r25 = serie(ind, visao, 2025).real, tem25 = r25.some(ok);
   const vals = [...real, ...meta, ...r25].filter(v => ok(v));
-  const el = document.getElementById("evo");
-  if (!vals.length){ el.innerHTML = `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`; return; }
-  const W=720,H=380,L=78,R=8,T=22,B=30, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
+  if (!vals.length) return null;
+  const L=78,R=8,T=22,B=30, max = niceMax(Math.max(...vals)), min = Math.min(0, ...vals);
   const y = v => T + (max - v)/(max - min)*(H-T-B), bw = (W-L-R)/12;
   let s = "";
   for (let k=0;k<=4;k++){ const v = min + (max-min)*k/4, yy = y(v);
@@ -469,7 +474,24 @@ function renderEvo(){
     s += `<polyline points="${pts.map(k => `${cx(k)},${y(r25[k])}`).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/>`;
     s += pts.map(k => `<circle cx="${cx(k)}" cy="${y(r25[k])}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"><title>2025 ${MES[k]}: ${fmt(ind, r25[k])}</title></circle>`).join("");
   }
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meta e realizado por mês">${s}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(ind.rotulo)}: meta e realizado por mês">${s}</svg>`;
+}
+function renderEvo(){
+  const ind = IND[evoInd];
+  document.getElementById("evoTitulo").textContent = `Evolução mensal · ${ind.rotulo} · ${visao===CONS?"Consolidado":visao}`;
+  evoTabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.id === "evo-"+evoInd));
+  document.getElementById("evoLeg25").hidden = !serie(ind, visao, 2025).real.some(ok);
+  const svg = svgEvo(ind, 720, 380);
+  document.getElementById("evo").innerHTML = svg ||
+    `<p class="muted">Sem lançamentos de ${esc(ind.rotulo)} para esta visão. Preencha a aba ${esc(ind.rotulo.toUpperCase())} da planilha.</p>`;
+}
+// só no PDF: a evolução de todos os indicadores com dado, dois por linha
+function renderEvoPdf(){
+  document.getElementById("evoPdfTitulo").textContent = `Evolução mensal · ${visao===CONS?"Consolidado":visao}`;
+  document.getElementById("evoPdfLeg25").hidden = !D.indicadores.some(i => serie(i, visao, 2025).real.some(ok));
+  document.getElementById("evoPdf").innerHTML = D.indicadores
+    .map(i => [i, svgEvo(i, 560, 330)]).filter(([, g]) => g)
+    .map(([i, g]) => `<div class="mini"><h4>${esc(i.rotulo)}</h4>${g}</div>`).join("");
 }
 
 
@@ -622,7 +644,7 @@ function render(){
   elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", sel.includes(k)));
   elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
-  renderKpis(); renderLojas(); renderEvo(); renderTicket(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
+  renderKpis(); renderLojas(); renderEvo(); renderEvoPdf(); renderTicket(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
   ["tblLojas", "tblOficina", "tblEstoque"].forEach(ordenavel);
   carregarComentario();
 }
@@ -639,7 +661,7 @@ async function gerarPdf(){
   // A4 retrato: cada bloco é capturado na mesma largura e empilhado; bloco que não cabe vai para a página seguinte
   const pdf = new window.jspdf.jsPDF({orientation: "portrait", unit: "mm", format: "a4"});
   const W = 210, H = 297, M = 10, TOPO = 14, LARG = 960;
-  const blocos = ["#folha1 > header", "#kpis", "#painelLojas", "#painelEvo", "#painelTk", "#painelOficina",
+  const blocos = ["#folha1 > header", "#kpis", "#painelLojas", "#painelTk", "#painelEvoPdf", "#painelOficina",
                   "#painelEst", "#painelRk", "#painelQual", "#painelGerente"];
   const prepara = doc => {
     doc.body.classList.add("pdf");
@@ -664,14 +686,17 @@ async function gerarPdf(){
     if (!el) continue;
     const canvas = await html2canvas(el, {scale: 2, backgroundColor: "#ffffff", windowWidth: LARG, onclone: prepara});
     if (!canvas.width || !canvas.height) continue;
-    const h = canvas.height * util / canvas.width;
+    let larg = util, h = canvas.height * util / canvas.width;
+    // quase cabe no fim da página: reduz até 15% em vez de deixar o espaço em branco
+    const resta = H - M - y;
+    if (h > resta && h * 0.85 <= resta) { larg = util * resta / h; h = resta; }
     if (y + h > H - M && y > (pagina === 1 ? M : TOPO)) {
       pdf.addPage(); pagina++; y = TOPO;
       pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.setTextColor(90);
       pdf.text(`${D.empresa} · One Page Pós-Vendas · ${rotuloSel(true)} · ${visao===CONS ? "Consolidado" : visao}`, M, 8);
     }
-    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", M, y, util, h);
-    y += h + 4;
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", M + (util - larg) / 2, y, larg, h);
+    y += h + 3;
   }
   const total = pdf.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
