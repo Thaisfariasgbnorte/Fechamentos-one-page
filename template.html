@@ -111,8 +111,8 @@ textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 /* PDF em retrato: blocos empilhados na largura da página, letra de leitura */
 .so-pdf-bloco{display:none}
 /* quadrinho dos gráficos */
-.hit{fill:transparent;cursor:pointer;outline:none}
-.hit:hover,.hit:focus-visible,.hit.fixo{fill:var(--ink);fill-opacity:.06}
+.hit{cursor:pointer;outline:none}
+.hit:hover,.hit:focus-visible,.hit.fixo{fill-opacity:.06}
 .dica{position:fixed;z-index:20;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.14);padding:9px 12px;font-size:13px;display:flex;flex-direction:column;gap:3px;min-width:170px;max-width:260px}
 .dica strong{font:700 14px var(--f-display);margin-bottom:2px}
 .dica span{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
@@ -120,7 +120,7 @@ textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 .dica i{display:inline-block;width:10px;height:10px;border-radius:2px}
 .dica i.tracejado{border:2px dashed var(--ink);background:transparent}
 .dica .pill{margin-left:auto}
-.pdf .hit{fill:transparent}
+.pdf .hit{fill-opacity:0}
 .evo-grade{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
 .evo-grade h4{margin:0 0 2px;font:700 15px var(--f-display)}
 .evo-grade svg{width:100%;height:auto;display:block}
@@ -467,7 +467,7 @@ function renderTicket(H = 380, el = document.getElementById("tk")){
 
 // área invisível de um mês no gráfico: ao passar o mouse ou tocar, mostra os números do mês
 const areaDica = (x, y, w, h, titulo, linhas) =>
-  `<rect class="hit" x="${x}" y="${y}" width="${w}" height="${h}" tabindex="0" data-tip="${esc(`<strong>${esc(titulo)}</strong>` + linhas.map(l => `<span>${l}</span>`).join(""))}"/>`;
+  `<rect class="hit" x="${x}" y="${y}" width="${w}" height="${h}" fill="#000000" fill-opacity="0" tabindex="0" data-tip="${esc(`<strong>${esc(titulo)}</strong>` + linhas.map(l => `<span>${l}</span>`).join(""))}"/>`;
 
 // gráfico de evolução (meta, realizado e 2025) de um indicador; null quando não há dado
 function svgEvo(ind, W, H){
