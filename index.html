@@ -110,6 +110,17 @@ textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 .pdf .controls{display:none} .pdf .so-pdf{display:block} .pdf .tbl{overflow:visible}
 /* PDF em retrato: blocos empilhados na largura da página, letra de leitura */
 .so-pdf-bloco{display:none}
+/* quadrinho dos gráficos */
+.hit{fill:transparent;cursor:pointer;outline:none}
+.hit:hover,.hit:focus-visible,.hit.fixo{fill:var(--ink);fill-opacity:.06}
+.dica{position:fixed;z-index:20;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.14);padding:9px 12px;font-size:13px;display:flex;flex-direction:column;gap:3px;min-width:170px;max-width:260px}
+.dica strong{font:700 14px var(--f-display);margin-bottom:2px}
+.dica span{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.dica b{margin-left:auto}
+.dica i{display:inline-block;width:10px;height:10px;border-radius:2px}
+.dica i.tracejado{border:2px dashed var(--ink);background:transparent}
+.dica .pill{margin-left:auto}
+.pdf .hit{fill:transparent}
 .evo-grade{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
 .evo-grade h4{margin:0 0 2px;font:700 15px var(--f-display)}
 .evo-grade svg{width:100%;height:auto;display:block}
@@ -120,6 +131,7 @@ textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 </style>
 
+<div class="dica" id="dica" role="tooltip" hidden></div>
 <div class="wrap">
  <div class="folha" id="folha1">
   <header>
@@ -445,8 +457,17 @@ function renderTicket(H = 380, el = document.getElementById("tk")){
       s += etiqueta(cx(m), ty, nf0.format(v), cor);
     });
   });
+  dados.forEach(([m, r]) => {
+    const linhas = [`Passagens: <b>${nf0.format(r.passagens)}</b>`,
+      ...TK_LINHAS.map(([, rot, cor, f]) => `<i style="background:${cor}"></i>${rot}: <b>${brl(f(r) / r.passagens)}</b>`)];
+    s += areaDica(L + m*bw, T - 18, bw, H - T - B + 18, `${MES[m]}/${D.ano}`, linhas);
+  });
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" font-family="Public Sans, system-ui, sans-serif" role="img" aria-label="Passagens e ticket médio por mês">${s}</svg>`;
 }
+
+// área invisível de um mês no gráfico: ao passar o mouse ou tocar, mostra os números do mês
+const areaDica = (x, y, w, h, titulo, linhas) =>
+  `<rect class="hit" x="${x}" y="${y}" width="${w}" height="${h}" tabindex="0" data-tip="${esc(`<strong>${esc(titulo)}</strong>` + linhas.map(l => `<span>${l}</span>`).join(""))}"/>`;
 
 // gráfico de evolução (meta, realizado e 2025) de um indicador; null quando não há dado
 function svgEvo(ind, W, H){
@@ -473,6 +494,21 @@ function svgEvo(ind, W, H){
     s += `<polyline points="${pts.map(k => `${cx(k)},${y(r25[k])}`).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/>`;
     s += pts.map(k => `<circle cx="${cx(k)}" cy="${y(r25[k])}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"><title>2025 ${MES[k]}: ${fmt(ind, r25[k])}</title></circle>`).join("");
   }
+  MES.forEach((nm, k) => {
+    if (!ok(real[k]) && !meta[k] && !ok(r25[k])) return;
+    const linhas = [];
+    if (meta[k]) linhas.push(`<i style="background:var(--meta)"></i>Meta: <b>${fmt(ind, meta[k])}</b>`);
+    if (ok(real[k])) linhas.push(`<i style="background:var(--mark)"></i>Realizado: <b>${fmt(ind, real[k])}</b>`);
+    if (ok(real[k]) && meta[k]) linhas.push(`% da meta: ${pill(real[k] / meta[k])}`);
+    if (ok(r25[k])) {
+      linhas.push(`<i class="tracejado"></i>2025: <b>${fmt(ind, r25[k])}</b>`);
+      if (ok(real[k])) {
+        const pp = ind.unidade === "%", v = pp ? real[k] - r25[k] : (r25[k] ? real[k] / r25[k] - 1 : null);
+        if (v != null) linhas.push(`Var. AA: <b class="delta ${v>=0?"up":"down"}">${v>=0?"▲":"▼"} ${pp ? nf1.format(Math.abs(v)) + " p.p." : pct(Math.abs(v))}</b>`);
+      }
+    }
+    s += areaDica(L + k*bw, T - 18, bw, H - T - B + 18, `${ind.rotulo} · ${nm}/${D.ano}`, linhas);
+  });
   return `<svg viewBox="0 0 ${W} ${H}" font-family="Public Sans, system-ui, sans-serif" role="img" aria-label="${esc(ind.rotulo)}: meta e realizado por mês">${s}</svg>`;
 }
 function renderEvo(){
@@ -798,5 +834,36 @@ elGerSalvar.onclick = async () => {
     carregarComentario();
   }, () => { elGerStatus.textContent = "Comentários indisponíveis no momento."; });
 })();
+
+// ---- Quadrinho dos gráficos: passa o mouse ou toca no mês; clicar fixa, clicar fora fecha ----
+const elDica = document.getElementById("dica");
+let dicaFixa = null;
+function mostraDica(alvo, x, y){
+  elDica.innerHTML = alvo.dataset.tip; elDica.hidden = false;
+  const r = elDica.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+  let left = x + 14, top = y + 14;
+  if (left + r.width > vw - 8) left = x - r.width - 14;
+  if (top + r.height > vh - 8) top = y - r.height - 14;
+  elDica.style.left = Math.max(8, left) + "px"; elDica.style.top = Math.max(8, top) + "px";
+}
+function escondeDica(){ elDica.hidden = true; if (dicaFixa) dicaFixa.classList.remove("fixo"); dicaFixa = null; }
+document.addEventListener("pointermove", e => {
+  if (dicaFixa) return;
+  const alvo = e.target.closest?.(".hit");
+  if (alvo && e.pointerType === "mouse") mostraDica(alvo, e.clientX, e.clientY);
+  else if (!alvo) elDica.hidden = true;
+});
+document.addEventListener("click", e => {
+  const alvo = e.target.closest?.(".hit");
+  if (!alvo || dicaFixa === alvo) { escondeDica(); return; }
+  escondeDica(); dicaFixa = alvo; alvo.classList.add("fixo"); mostraDica(alvo, e.clientX, e.clientY);
+});
+document.addEventListener("focusin", e => {
+  if (!e.target.classList?.contains("hit")) return;
+  const r = e.target.getBoundingClientRect(); mostraDica(e.target, r.right, r.top);
+});
+document.addEventListener("focusout", e => { if (e.target.classList?.contains("hit") && !dicaFixa) elDica.hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape") escondeDica(); });
+window.addEventListener("scroll", () => { if (!dicaFixa) elDica.hidden = true; }, {passive: true});
 render();
 </script>
