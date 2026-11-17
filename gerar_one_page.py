@@ -106,6 +106,9 @@ def main(xlsx, saida):
                           if str(b25.cell(r, 2).value or "").startswith(f"{aba} 2025")), None)
             if lin25:
                 real25, real25_cons = bloco(b25, lin25 + 2, n)
+                # 0 em 2025 = loja ainda não aberta: fica sem comparação naquele mês
+                real25 = {l: [None if v == 0 else v for v in vs] for l, vs in real25.items()}
+                real25_cons = [None if v == 0 else v for v in real25_cons]
         dados["indicadores"].append({
             "chave": chave, "rotulo": rotulo, "unidade": unidade, "consolidacao": consol,
             "fonte": fontes.get(rotulo, fontes.get(rotulo.upper(), "")),
