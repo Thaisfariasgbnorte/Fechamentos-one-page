@@ -9,7 +9,7 @@
   --bg:#ffffff; --surface:#ffffff; --surface-2:#f2f2f2; --line:#dedede;
   --ink:#111111; --muted:#5f5f5f; --accent:#111111; --accent-soft:#ececec; --meta:#cfcfcf;
   --mark:#1f6fb2;
-  --good:#1d7a4a; --good-bg:#dcf0e4; --warn:#9a6400; --warn-bg:#fbecc9; --bad:#b3261e; --bad-bg:#f8dcd9;
+  --good:#1d7a4a; --good-bg:#dcf0e4; --warn:#9a6400; --warn-bg:#fbecc9; --bad:#b3261e; --bad-bg:#f8dcd9; --top:#1f5fa8; --top-bg:#dceafb;
   --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
   --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
@@ -50,7 +50,7 @@ button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var
 .kpi .aa b small{font-size:11px}
 .kpi svg{width:100%;height:30px;display:block}
 .pill{display:inline-block;font-size:12px;font-weight:700;padding:1px 7px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.none{background:var(--surface-2);color:var(--muted)}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.top{background:var(--top-bg);color:var(--top)} .pill.none{background:var(--surface-2);color:var(--muted)}
 .delta.up{color:var(--good)} .delta.down{color:var(--bad)}
 
 /* páginas */
@@ -222,7 +222,13 @@ function fmt(ind, v, curto){
   return nf0.format(v);
 }
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const faixa = p => p == null || !isFinite(p) ? "none" : p >= D.faixaVerde ? "good" : p >= D.faixaAmarela ? "warn" : "bad";
+// faixas do % da meta, pelo valor arredondado que aparece na tela:
+// até 89% vermelho · 90–99% amarelo · 100–120% verde · acima de 120% azul
+const faixa = p => {
+  if (p == null || !isFinite(p)) return "none";
+  const r = Math.round(p * 100);
+  return r > 120 ? "top" : r >= 100 ? "good" : r >= 90 ? "warn" : "bad";
+};
 const pill = p => `<span class="pill ${faixa(p)}">${pct(p)}</span>`;
 const somaInd = i => i.consolidacao === "soma";
 // lojas exibidas nas tabelas: todas no consolidado, só a escolhida na visão de loja
