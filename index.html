@@ -223,11 +223,11 @@ function fmt(ind, v, curto){
 }
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 // faixas do % da meta, pelo valor arredondado que aparece na tela:
-// até 89% vermelho · 90–99% amarelo · 100–120% verde · acima de 120% azul
+// até 89% vermelho · 90–99% amarelo · 100–150% verde · acima de 150% azul
 const faixa = p => {
   if (p == null || !isFinite(p)) return "none";
   const r = Math.round(p * 100);
-  return r > 120 ? "top" : r >= 100 ? "good" : r >= 90 ? "warn" : "bad";
+  return r > 150 ? "top" : r >= 100 ? "good" : r >= 90 ? "warn" : "bad";
 };
 const pill = p => `<span class="pill ${faixa(p)}">${pct(p)}</span>`;
 const somaInd = i => i.consolidacao === "soma";
