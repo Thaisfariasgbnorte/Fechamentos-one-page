@@ -110,6 +110,9 @@ textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
 .pdf .controls{display:none} .pdf .so-pdf{display:block} .pdf .tbl{overflow:visible}
 /* PDF em retrato: blocos empilhados na largura da página, letra de leitura */
 .so-pdf-bloco{display:none}
+.osn-grade{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px;align-items:start}
+@media (max-width:960px){.osn-grade{grid-template-columns:minmax(0,1fr)}}
+.osn-vend h4{margin:0 0 6px;font:700 15px var(--f-display)}
 /* quadrinho dos gráficos */
 .hit{cursor:pointer;outline:none}
 .hit:hover,.hit:focus-visible,.hit.fixo{fill-opacity:.06}
@@ -191,6 +194,13 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
     <section id="painelQual" class="panel span-12">
       <div class="hd"><h3>Qualidade montadora</h3><span class="note" id="qmNota"></span></div>
       <div class="tbl"><table id="tblQualidade"></table></div>
+    </section>
+    <section class="panel span-12" id="painelOsn">
+      <div class="hd"><h3>OS negadas</h3><span class="note" id="osnNota"></span></div>
+      <div class="osn-grade">
+        <div class="tbl"><table id="tblOsn"></table></div>
+        <div class="osn-vend"><h4>Vendedores com mais valor negado</h4><table id="tblOsnVend"></table></div>
+      </div>
     </section>
     <section class="panel span-12" id="painelGerente">
       <div class="hd"><h3>Comentários e ações do mês · gerente</h3><span class="note" id="gerNota"></span></div>
@@ -678,6 +688,47 @@ function ordenavel(id){
   });
 }
 
+// OS negadas do período e da visão: tabela por loja e vendedores com mais valor negado
+function renderOsn(){
+  const dados = D.osNegada || {};
+  const t = document.getElementById("tblOsn"), tv = document.getElementById("tblOsnVend");
+  const lojasCom = LOJAS.filter(l => dados[l]);
+  document.getElementById("osnNota").textContent = `${rotuloSel(false)} · abas OSN da planilha`;
+  if (!lojasCom.length) {
+    t.innerHTML = `<tbody><tr><td class="muted">Sem OS negadas lançadas. Cole o relatório de cada loja nas abas OSN da planilha.</td></tr></tbody>`;
+    tv.innerHTML = ""; return;
+  }
+  const doPeriodo = l => {
+    const r = {qtd: 0, valor: 0, vend: {}};
+    sel.forEach(m => { const x = dados[l]?.[m]; if (!x) return;
+      r.qtd += x.qtd; r.valor += x.valor;
+      Object.entries(x.vendedores).forEach(([v, [q, val]]) => { const a = r.vend[v] || (r.vend[v] = [0, 0]); a[0] += q; a[1] += val; });
+    });
+    return r;
+  };
+  const porLoja = Object.fromEntries(LOJAS.map(l => [l, doPeriodo(l)]));
+  const tot = {qtd: 0, valor: 0};
+  LOJAS.forEach(l => { tot.qtd += porLoja[l].qtd; tot.valor += porLoja[l].valor; });
+  const linha = (nome, r) => {
+    const tem = dados[nome] || nome === "Total";
+    if (!tem) return `<td>${esc(nome)}</td><td class="n muted" colspan="4">sem relatório lançado</td>`;
+    return `<td>${esc(nome)}</td><td class="n"${dv(r.qtd)}>${nf0.format(r.qtd)}</td><td class="n"${dv(r.valor)}>${brl(r.valor)}</td>` +
+      `<td class="n"${dv(r.qtd ? r.valor / r.qtd : null)}>${r.qtd ? brl(r.valor / r.qtd) : "—"}</td>` +
+      `<td class="n"${dv(tot.valor ? r.valor / tot.valor : null)}>${tot.valor ? pct(r.valor / tot.valor) : "—"}</td>`;
+  };
+  t.innerHTML = `<thead><tr><th>Loja</th><th class="n">OS negadas</th><th class="n">Valor negado</th><th class="n">Valor médio</th><th class="n">% do valor</th></tr></thead><tbody>` +
+    lojasVis().map(l => `<tr>${linha(l, porLoja[l])}</tr>`).join("") + `</tbody>` +
+    (visao === CONS ? `<tfoot><tr>${linha("Total", tot)}</tr></tfoot>` : "");
+  // vendedores (na visão consolidada, de todas as lojas)
+  const vend = {};
+  lojasVis().forEach(l => Object.entries(porLoja[l].vend).forEach(([v, [q, val]]) => {
+    const k = v + "|" + l, a = vend[k] || (vend[k] = {v, l, q: 0, val: 0}); a.q += q; a.val += val; }));
+  const top = Object.values(vend).sort((a, b) => b.val - a.val).slice(0, 8);
+  tv.innerHTML = top.length ? `<thead><tr><th>Vendedor</th>${visao===CONS?"<th>Loja</th>":""}<th class="n">OS</th><th class="n">Valor</th></tr></thead><tbody>` +
+    top.map(x => `<tr><td>${esc(x.v)}</td>${visao===CONS?`<td class="muted">${esc(x.l)}</td>`:""}<td class="n">${nf0.format(x.q)}</td><td class="n">${brlK(x.val)}</td></tr>`).join("") + `</tbody>`
+    : `<tbody><tr><td class="muted">Nenhuma OS negada no período.</td></tr></tbody>`;
+}
+
 function render(){
   document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
   document.getElementById("tituloMes").textContent = rotuloSel(true) + (visao!==CONS ? " · " + visao : "");
@@ -685,8 +736,8 @@ function render(){
   elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", sel.includes(k)));
   elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
-  renderKpis(); renderLojas(); renderEvo(); renderEvoPdf(); renderTicket(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade();
-  ["tblLojas", "tblOficina", "tblEstoque"].forEach(ordenavel);
+  renderKpis(); renderLojas(); renderEvo(); renderEvoPdf(); renderTicket(); renderOficina(); renderEstoque(); renderRanking(); renderQualidade(); renderOsn();
+  ["tblLojas", "tblOficina", "tblEstoque", "tblOsn"].forEach(ordenavel);
   carregarComentario();
 }
 
@@ -703,7 +754,7 @@ async function gerarPdf(){
   const pdf = new window.jspdf.jsPDF({orientation: "portrait", unit: "mm", format: "a4"});
   const W = 210, H = 297, M = 10, TOPO = 14, LARG = 960;
   const blocos = ["#folha1 > header", "#kpis", "#painelLojas", "#painelTk", "#painelEvoPdf", "#painelOficina",
-                  "#painelEst", "#painelRk", "#painelQual", "#painelGerente"];
+                  "#painelEst", "#painelRk", "#painelQual", "#painelOsn", "#painelGerente"];
   const prepara = doc => {
     doc.body.classList.add("pdf");
     doc.body.style.paddingLeft = doc.body.style.paddingRight = "0";

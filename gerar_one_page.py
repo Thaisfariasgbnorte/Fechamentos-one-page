@@ -181,6 +181,46 @@ def main(xlsx, saida):
         })
     dados["estoque"] = estoque
 
+    # OS negadas: uma aba "OSN ..." por loja (o relatório não traz a loja); a loja vem do título A1
+    def valor_br(v):
+        if isinstance(v, (int, float)):
+            return v
+        t = str(v or "").strip().replace("R$", "").replace(" ", "")
+        if not t:
+            return None
+        if "," in t and "." in t:   # o separador que vem por último é o dos centavos
+            t = t.replace(".", "").replace(",", ".") if t.rfind(",") > t.rfind(".") else t.replace(",", "")
+        elif "," in t:
+            t = t.replace(",", "") if len(t.split(",")[-1]) == 3 else t.replace(",", ".")
+        try:
+            return float(t)
+        except ValueError:
+            return None
+    os_negada = {}
+    for aba in wb.sheetnames:
+        if not aba.startswith("OSN "):
+            continue
+        ws = wb[aba]
+        loja = str(ws["A1"].value or "").split("—")[-1].strip()
+        if loja not in lojas:
+            continue
+        meses = {}
+        for r in range(5, ws.max_row + 1):
+            data = ws.cell(r, 3).value
+            if not hasattr(data, "year") or data.year != dados["ano"]:
+                continue
+            m = meses.setdefault(data.month - 1, {"qtd": 0, "valor": 0.0, "vendedores": {}})
+            v = valor_br(ws.cell(r, 8).value) or 0.0
+            m["qtd"] += 1
+            m["valor"] += v
+            vend = str(ws.cell(r, 7).value or "—").strip()
+            q = m["vendedores"].setdefault(vend, [0, 0.0])
+            q[0] += 1
+            q[1] += v
+        if meses:  # aba vazia = relatório ainda não lançado
+            os_negada[loja] = meses
+    dados["osNegada"] = os_negada
+
     # Qualidade montadora
     qm = wb["QUALIDADE MONTADORA"]
     qualidade = []
