@@ -133,6 +133,8 @@ def main(xlsx, saida):
             reg = {k: (num(ws.cell(r, c[idx]).value) if c[idx] else None) for k, c in campos.items()}
             if all(v is None for v in reg.values()):
                 continue  # faixa "MÊS — cole aqui..." ou linha sem números
+            if str(nome).strip().upper() in ("TOTAL", "NOME") or str(nome).startswith("Filtros "):
+                continue  # linha de total/cabeçalho do export (a LIGAÇÃO EXPORTS também ignora)
             linhas.append({"mes": int(mes) - 1, "origem": origem, "nome": nome,
                            "loja": loja or "SEM LOJA", **reg})
 
