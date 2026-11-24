@@ -8,6 +8,7 @@ e embute os dados em template.html.
 """
 import json
 import sys
+import unicodedata
 from pathlib import Path
 
 import openpyxl
@@ -26,6 +27,30 @@ INDICADORES = [
     (("RETORNO", "FFV"), "ffv", "Retorno", "%", "media"),
     (("CHAMADO", "DID"), "did", "Chamado", "%", "media"),
 ]
+
+
+# grafias diferentes da mesma pessoa nos exports (chave sem acento, maiúscula) -> nome padrão
+NOMES_IGUAIS = {
+    "WALLISSON OLIVEIRA LIMA": "WALLISON OLIVEIRA LIMA",
+}
+MINUSCULAS = {"de", "da", "do", "das", "dos", "e"}
+_padrao = {}
+
+
+def nome_consultor(nome):
+    """Nome do consultor num formato só ("Karina de Carvalho Pereira"); variações de maiúsculas,
+    acentos, espaços e as grafias de NOMES_IGUAIS viram o mesmo nome."""
+    bruto = " ".join(str(nome or "").split())
+    if not bruto:
+        return "—"
+    chave = unicodedata.normalize("NFD", bruto).encode("ascii", "ignore").decode().upper()
+    chave = NOMES_IGUAIS.get(chave, chave)
+    if chave not in _padrao:  # a primeira grafia vista (com acento, se tiver) define o nome exibido
+        base = bruto if NOMES_IGUAIS.get(chave) is None and chave == unicodedata.normalize(
+            "NFD", bruto).encode("ascii", "ignore").decode().upper() else chave
+        _padrao[chave] = " ".join(p.lower() if i and p.lower() in MINUSCULAS else p.capitalize()
+                                  for i, p in enumerate(base.lower().split()))
+    return _padrao[chave]
 
 
 def num(v):
@@ -135,7 +160,7 @@ def main(xlsx, saida):
                 continue  # faixa "MÊS — cole aqui..." ou linha sem números
             if str(nome).strip().upper() in ("TOTAL", "NOME") or str(nome).startswith("Filtros "):
                 continue  # linha de total/cabeçalho do export (a LIGAÇÃO EXPORTS também ignora)
-            linhas.append({"mes": int(mes) - 1, "origem": origem, "nome": nome,
+            linhas.append({"mes": int(mes) - 1, "origem": origem, "nome": nome_consultor(nome),
                            "loja": loja or "SEM LOJA", **reg})
 
     def resumo(regs):
@@ -213,7 +238,7 @@ def main(xlsx, saida):
             v = valor_br(ws.cell(r, 8).value) or 0.0
             m["qtd"] += 1
             m["valor"] += v
-            vend = str(ws.cell(r, 7).value or "—").strip()
+            vend = nome_consultor(ws.cell(r, 7).value)
             q = m["vendedores"].setdefault(vend, [0, 0.0])
             q[0] += 1
             q[1] += v
