@@ -196,7 +196,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
       <div class="tbl"><table id="tblQualidade"></table></div>
     </section>
     <section class="panel span-12" id="painelOsn">
-      <div class="hd"><h3>OS negadas</h3><span class="note" id="osnNota"></span></div>
+      <div class="hd"><h3>OC negadas</h3><span class="note" id="osnNota"></span></div>
       <div class="osn-grade">
         <div class="tbl"><table id="tblOsn"></table></div>
         <div class="osn-vend"><h4>Vendedores com mais valor negado</h4><table id="tblOsnVend"></table></div>
@@ -688,14 +688,14 @@ function ordenavel(id){
   });
 }
 
-// OS negadas do período e da visão: tabela por loja e vendedores com mais valor negado
+// OC negadas do período e da visão: tabela por loja e vendedores com mais valor negado
 function renderOsn(){
   const dados = D.osNegada || {};
   const t = document.getElementById("tblOsn"), tv = document.getElementById("tblOsnVend");
   const lojasCom = LOJAS.filter(l => dados[l]);
-  document.getElementById("osnNota").textContent = `${rotuloSel(false)} · abas OSN da planilha`;
+  document.getElementById("osnNota").textContent = `${rotuloSel(false)} · abas OCN da planilha`;
   if (!lojasCom.length) {
-    t.innerHTML = `<tbody><tr><td class="muted">Sem OS negadas lançadas. Cole o relatório de cada loja nas abas OSN da planilha.</td></tr></tbody>`;
+    t.innerHTML = `<tbody><tr><td class="muted">Sem OC negadas lançadas. Cole o relatório de cada loja nas abas OCN da planilha.</td></tr></tbody>`;
     tv.innerHTML = ""; return;
   }
   const doPeriodo = l => {
@@ -716,7 +716,7 @@ function renderOsn(){
       `<td class="n"${dv(r.qtd ? r.valor / r.qtd : null)}>${r.qtd ? brl(r.valor / r.qtd) : "—"}</td>` +
       `<td class="n"${dv(tot.valor ? r.valor / tot.valor : null)}>${tot.valor ? pct(r.valor / tot.valor) : "—"}</td>`;
   };
-  t.innerHTML = `<thead><tr><th>Loja</th><th class="n">OS negadas</th><th class="n">Valor negado</th><th class="n">Valor médio</th><th class="n">% do valor</th></tr></thead><tbody>` +
+  t.innerHTML = `<thead><tr><th>Loja</th><th class="n">OC negadas</th><th class="n">Valor negado</th><th class="n">Valor médio</th><th class="n">% do valor</th></tr></thead><tbody>` +
     lojasVis().map(l => `<tr>${linha(l, porLoja[l])}</tr>`).join("") + `</tbody>` +
     (visao === CONS ? `<tfoot><tr>${linha("Total", tot)}</tr></tfoot>` : "");
   // vendedores (na visão consolidada, de todas as lojas)
@@ -724,9 +724,9 @@ function renderOsn(){
   lojasVis().forEach(l => Object.entries(porLoja[l].vend).forEach(([v, [q, val]]) => {
     const k = v + "|" + l, a = vend[k] || (vend[k] = {v, l, q: 0, val: 0}); a.q += q; a.val += val; }));
   const top = Object.values(vend).sort((a, b) => b.val - a.val).slice(0, 8);
-  tv.innerHTML = top.length ? `<thead><tr><th>Vendedor</th>${visao===CONS?"<th>Loja</th>":""}<th class="n">OS</th><th class="n">Valor</th></tr></thead><tbody>` +
+  tv.innerHTML = top.length ? `<thead><tr><th>Vendedor</th>${visao===CONS?"<th>Loja</th>":""}<th class="n">OC</th><th class="n">Valor</th></tr></thead><tbody>` +
     top.map(x => `<tr><td>${esc(x.v)}</td>${visao===CONS?`<td class="muted">${esc(x.l)}</td>`:""}<td class="n">${nf0.format(x.q)}</td><td class="n">${brlK(x.val)}</td></tr>`).join("") + `</tbody>`
-    : `<tbody><tr><td class="muted">Nenhuma OS negada no período.</td></tr></tbody>`;
+    : `<tbody><tr><td class="muted">Nenhuma OC negada no período.</td></tr></tbody>`;
 }
 
 function render(){

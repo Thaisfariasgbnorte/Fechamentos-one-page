@@ -215,7 +215,7 @@ def main(xlsx, saida):
         })
     dados["estoque"] = estoque
 
-    # OS negadas: uma aba "OSN ..." por loja (o relatório não traz a loja); a loja vem do título A1
+    # OC negadas: uma aba "OCN ..." (antes "OSN ...") por loja (o relatório não traz a loja); a loja vem do título A1
     def valor_br(v):
         if isinstance(v, (int, float)):
             return v
@@ -232,7 +232,7 @@ def main(xlsx, saida):
             return None
     os_negada = {}
     for aba in wb.sheetnames:
-        if not aba.startswith("OSN "):
+        if not aba.startswith(("OCN ", "OSN ")):
             continue
         ws = wb[aba]
         loja = str(ws["A1"].value or "").split("—")[-1].strip()
