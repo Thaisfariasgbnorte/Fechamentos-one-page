@@ -49,6 +49,9 @@ Com 2025 preenchido, os cartões mostram a variação "vs 2025" e o gráfico men
 
 Porcentagens aparecem sem casa decimal (98,8% → 99%).
 
+**Nomes de consultores**: aparecem num formato só ("Karina de Carvalho Pereira"). Grafias diferentes da
+mesma pessoa se juntam pelo quadro CONSULTORES da aba DE-PARA (colunas I:J: nome no export → nome padrão).
+
 ## Arquivos
 
 - `gerar_one_page.py` — lê a planilha e grava o HTML.

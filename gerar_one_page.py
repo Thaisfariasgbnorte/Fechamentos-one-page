@@ -29,11 +29,9 @@ INDICADORES = [
 ]
 
 
-# grafias diferentes da mesma pessoa nos exports (chave sem acento, maiúscula) -> nome padrão
-NOMES_IGUAIS = {
-    "WALLISON OLIVEIRA LIMA": "WALLISSON OLIVEIRA LIMA",
-    "WALISON LIMA DOS SANTOS": "WALLISSON OLIVEIRA LIMA",   # mesmo consultor, cadastrado errado
-}
+# grafias diferentes da mesma pessoa (chave sem acento, maiúscula) -> nome padrão;
+# preenchido pelo quadro CONSULTORES da aba DE-PARA (colunas I:J)
+NOMES_IGUAIS = {}
 MINUSCULAS = {"de", "da", "do", "das", "dos", "e"}
 _padrao = {}
 
@@ -95,6 +93,16 @@ def main(xlsx, saida):
             faixas["amarela"] = val
         cfg_val[rot] = val
     n = len(lojas)
+
+    # de-para de consultores (DE-PARA, colunas I:J): várias grafias -> um nome padrão
+    if "DE-PARA" in wb.sheetnames:
+        dp = wb["DE-PARA"]
+        if "CONSULTORES" in str(dp["I1"].value or ""):
+            chave = lambda t: unicodedata.normalize("NFD", " ".join(str(t).split())).encode("ascii", "ignore").decode().upper()
+            for r in range(2, dp.max_row + 1):
+                de, para = dp.cell(r, 9).value, dp.cell(r, 10).value
+                if de and para:
+                    NOMES_IGUAIS[chave(de)] = chave(para)
 
     dados = {
         "empresa": cfg["C6"].value,
