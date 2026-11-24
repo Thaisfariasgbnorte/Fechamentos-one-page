@@ -32,6 +32,7 @@ INDICADORES = [
 # grafias diferentes da mesma pessoa nos exports (chave sem acento, maiúscula) -> nome padrão
 NOMES_IGUAIS = {
     "WALLISSON OLIVEIRA LIMA": "WALLISON OLIVEIRA LIMA",
+    "WALISON LIMA DOS SANTOS": "WALLISON OLIVEIRA LIMA",   # mesmo consultor, cadastrado errado
 }
 MINUSCULAS = {"de", "da", "do", "das", "dos", "e"}
 _padrao = {}
