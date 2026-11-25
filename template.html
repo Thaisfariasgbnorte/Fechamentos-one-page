@@ -1,4 +1,4 @@
-<title>One Page Pós-Vendas</title>
+<title>One Page Indicadores PV</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&display=swap">
@@ -140,7 +140,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
   <header>
     <div>
       <div class="eyebrow" id="empresa"></div>
-      <h1>One Page <span>Pós-Vendas</span> · <span id="tituloMes" class="num"></span></h1>
+      <h1>ONE PAGE INDICADORES PV · <span id="tituloMes" class="num"></span></h1>
     </div>
     <div class="controls">
       <div class="ctl"><span class="eyebrow">Período</span><div class="months" id="atalhos" role="group" aria-label="Atalhos de período"></div></div>
@@ -732,7 +732,7 @@ function renderOsn(){
 function render(){
   document.getElementById("empresa").textContent = `${D.empresa} · ${D.ano}`;
   document.getElementById("tituloMes").textContent = rotuloSel(true) + (visao!==CONS ? " · " + visao : "");
-  document.getElementById("pdfCab").textContent = `${D.empresa} · One Page Pós-Vendas · ${rotuloSel(true)} · ${visao===CONS ? "Consolidado" : visao}`;
+  document.getElementById("pdfCab").textContent = `${D.empresa} · ONE PAGE INDICADORES PV · ${rotuloSel(true)} · ${visao===CONS ? "Consolidado" : visao}`;
   elMeses.querySelectorAll("button").forEach((b,k) => b.setAttribute("aria-pressed", sel.includes(k)));
   elAtalhos.querySelectorAll("button").forEach((b,i) => b.setAttribute("aria-pressed", igual(sel, atalhos[i][1]())));
   elVisao.value = visao;
@@ -815,7 +815,7 @@ async function gerarPdf(){
     if (i) {
       pdf.addPage();
       pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.setTextColor(90);
-      pdf.text(`${D.empresa} · One Page Pós-Vendas · ${rotuloSel(true)} · ${visao===CONS ? "Consolidado" : visao}`, M, 8);
+      pdf.text(`${D.empresa} · ONE PAGE INDICADORES PV · ${rotuloSel(true)} · ${visao===CONS ? "Consolidado" : visao}`, M, 8);
     }
     pg.forEach(it => pdf.addImage(it.canvas.toDataURL("image/jpeg", 0.92), "JPEG", M + (util - it.larg) / 2, it.y, it.larg, it.h));
   });
@@ -826,7 +826,7 @@ async function gerarPdf(){
   }
   return pdf;
 }
-const nomeArquivo = () => `One Page Pos-Vendas ${rotuloSel(false).replace(/[\/]/g, "-")}${visao!==CONS ? " " + visao : ""}.pdf`;
+const nomeArquivo = () => `ONE PAGE INDICADORES PV ${rotuloSel(false).replace(/[\/]/g, "-")}${visao!==CONS ? " " + visao : ""}.pdf`;
 const elPdf = document.getElementById("btnPdf"), elPdfStatus = document.getElementById("pdfStatus");
 elPdf.onclick = async () => {
   elPdf.disabled = true; elPdfStatus.textContent = "Gerando PDF…";
