@@ -1,7 +1,9 @@
 """Gera a ONE PAGE de Pós-Vendas (index.html) a partir da planilha mãe.
 
 Uso:
-    python3 gerar_one_page.py INDICADORES_POS_VENDA_planilha_mae.xlsx [saida.html]
+    python3 gerar_one_page.py INDICADORES_POS_VENDA_planilha_mae.xlsx [saida.html] ["data de referência"]
+
+A data de referência (ex.: "27/11/2026 - 14:36:00") aparece pequena no topo da página e do PDF.
 
 Lê os valores já calculados pelo Excel (salve a planilha no Excel antes de rodar)
 e embute os dados em template.html.
@@ -69,7 +71,7 @@ def bloco(ws, linha_ini, n_lojas):
     return lojas, cons
 
 
-def main(xlsx, saida):
+def main(xlsx, saida, referencia=None):
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     cfg = wb["CONFIGURAÇÃO"]
     # a CONFIGURAÇÃO é lida pelos rótulos da coluna B, então lojas novas não quebram o gerador
@@ -106,6 +108,7 @@ def main(xlsx, saida):
 
     dados = {
         "empresa": cfg["C6"].value,
+        "referencia": referencia,
         "ano": cfg["C7"].value,
         "periodo1": cfg_val.get("Nome do período 1"),
         "periodo2": cfg_val.get("Nome do período 2"),
@@ -283,4 +286,4 @@ def main(xlsx, saida):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit(__doc__)
-    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "index.html")
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "index.html", sys.argv[3] if len(sys.argv) > 3 else None)
