@@ -11,9 +11,10 @@ Página única (HTML) com os indicadores de pós-vendas gerada a partir da plani
 
    ```bash
    pip install openpyxl
-   python3 gerar_one_page.py caminho/da/planilha.xlsx index.html "27/11/2026 - 14:36:00"
+   python3 gerar_one_page.py caminho/da/planilha.xlsx index.html
 
-   O terceiro valor (opcional) é a data de referência, mostrada pequena no topo da página e do PDF.
+   O topo da página e do PDF mostra "Dados atualizados em" com a data e a hora em que a página foi gerada
+   (horário de Brasília). Para usar outra data, passe-a como terceiro valor, entre aspas.
    ```
 
 3. Abra `index.html` no navegador.

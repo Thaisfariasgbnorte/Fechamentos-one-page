@@ -3,7 +3,8 @@
 Uso:
     python3 gerar_one_page.py INDICADORES_POS_VENDA_planilha_mae.xlsx [saida.html] ["data de referência"]
 
-A data de referência (ex.: "27/11/2026 - 14:36:00") aparece pequena no topo da página e do PDF.
+"Dados atualizados em" aparece pequeno no topo da página e do PDF, com a data e a hora em que a
+One Page foi gerada (horário de Brasília); o 3º argumento opcional substitui esse texto.
 
 Lê os valores já calculados pelo Excel (salve a planilha no Excel antes de rodar)
 e embute os dados em template.html.
@@ -11,6 +12,8 @@ e embute os dados em template.html.
 import json
 import sys
 import unicodedata
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import openpyxl
@@ -108,7 +111,8 @@ def main(xlsx, saida, referencia=None):
 
     dados = {
         "empresa": cfg["C6"].value,
-        "referencia": referencia,
+        # data e hora da atualização (horário de Brasília), salvo quando informada
+        "referencia": referencia or datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y às %H:%M"),
         "ano": cfg["C7"].value,
         "periodo1": cfg_val.get("Nome do período 1"),
         "periodo2": cfg_val.get("Nome do período 2"),
